@@ -73,9 +73,11 @@ class GameParser:
                 break
                         
             logging.info(line)
-            class_name, obj_name = line.split()
+            class_name, obj_name = line.split(maxsplit=1)
             if obj := get_obj(class_name):
                 obj.parse(self, obj_name, lines)
+            elif line.startswith("#define"):
+                self.parse_macro(line)
                 
     def compile(self, raw, obj_name):
         lines = clean_raw(raw)
@@ -117,43 +119,47 @@ class GameParser:
             else:
                 current_name = line.strip()
                 
+    def parse_macro(self, line):
+        _, name, value = line.split(maxsplit=2)
+        value = remove_comments(value, macro=True)
+        name = name.strip()
+        
+        try:
+            number = float(value.replace("%", ""))
+            self.macros[name] = number if not "%" in value else number / 100
+            return
+        except ValueError:
+            pass
+            
+        if value in ["Yes", "No"]:
+            self.macros[name] = value == "Yes"
+            return
+        
+        if match := re.match(r"#(\w*)\( (\w*) ([a-zA-Z0-9_.]*) \)", value):
+            operation = match.group(1)
+            args = match.group(2, 3)
+            self.macros[name] = Operation(operation, args, self)
+            return
+            
+        if value[0].isdigit():
+            self.macros[name] = value
+            return
+        
+        try:
+            if value.split()[0] in Descriptors.__members__ or value.split()[0].startswith('-'):
+                self.macros[name] = FilterList(name, value.split())
+            else:
+                self.macros[name] = [KindsOf[x] for x in value.split()]
+            return
+        except IndexError:
+            self.macros[name] = value
+        
     def parse_macros(self, raw):
-        lines = raw.splitlines()
+        lines = clean_raw(raw)
         
         for line in lines:
             logging.debug(line)
             
-            if line.startswith("#"):
-                _, name, value = line.split(maxsplit=2)
-                value = remove_comments(value, macro=True)
-                
-                try:
-                    number = float(value.replace("%", ""))
-                    self.macros[name.strip()] = number if not "%" in value else number / 100
-                    continue
-                except ValueError:
-                    pass
-                    
-                if value in ["Yes", "No"]:
-                    self.macros[name.strip()] = value == "Yes"
-                    continue
-                
-                if match := re.match(r"#(\w*)\( (\w*) ([a-zA-Z0-9_.]*) \)", value):
-                    operation = match.group(1)
-                    args = match.group(2, 3)
-                    self.macros[name.strip()] = Operation(operation, args, self)
-                    continue
-                    
-                if value[0].isdigit():
-                    self.macros[name.strip()] = value
-                    continue
-                
-                try:
-                    if value.split()[0] in Descriptors.__members__ or value.split()[0].startswith('-'):
-                        self.macros[name.strip()] = FilterList(name.strip(), value.split())
-                    else:
-                        self.macros[name.strip()] = [KindsOf[x] for x in value.split()]
-                    continue
-                except IndexError:
-                    self.macros[name.strip()] = value
+            if line.startswith("#define"):
+               self.parse_macro(line)
         
