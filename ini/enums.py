@@ -391,3 +391,6 @@ class Modifier(enum.Enum):
     
     def is_mult(self):
         return self.value > self.__class__.SEPARATOR.value
+
+class EmotionTypes:
+    pass
