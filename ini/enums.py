@@ -392,5 +392,22 @@ class Modifier(enum.Enum):
     def is_mult(self):
         return self.value > self.__class__.SEPARATOR.value
 
-class EmotionTypes:
+class EmotionTypes(enum.Enum):
     pass
+    
+class SpecialPowerEnums(enum.Enum):
+    SPECIAL_SPELL_BOOK_ELVEN_GIFTS           = 0
+    SPECIAL_SPELL_BOOK_DUNEDAIN_ALLIES       = 1
+    SPECIAL_WIZARD_BLAST                     = 2
+    SPECIAL_WOUND_ARROW                      = 3
+    SPECIAL_ATTRIBUTEMOD_CANCELDISGUISE      = 4
+    SPECIAL_GENERAL_TARGETLESS_TWO           = 5
+    SPECIAL_SPELL_BOOK_MEN_OF_DALE_ALLIES    = 6
+    SPECIAL_AT_VISIBLE_OBJECT                = 7
+    SPECIAL_TRIGGER_ATTRIBUTE_MODIFIER       = 8
+    SPECIAL_GENERAL_TARGETLESS_THREE         = 9
+    SPECIAL_SPELL_BOOK_BOMBARD               = 10
+    SPECIAL_AT_VISIBLE_GROUNDED_OBJECT       = 11
+    SPECIAL_BALROG_WINGS                     = 12
+    SPECIAL_GENERAL_TARGETLESS               = 13
+    SPECIAL_SHIELD_BUBBLE                    = 14

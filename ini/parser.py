@@ -18,6 +18,8 @@ class GameParser:
         self.upgrades = {}
         self.modifiers = {}
         self.levels = {}
+        self.sciences = {}
+        self.specialpowers = {}
         
         self.cursors = {}
         self.images = {}
@@ -54,19 +56,13 @@ class GameParser:
         
         
     def get_macro(self, macro):
-        if isinstance(macro, float) or macro is None:
+        if macro is None or not isinstance(macro, str):
             return macro
-            
+        
         try:
-            return float(macro)
-        except ValueError:
-            pass
-            
-        if not macro in self.macros:
-            raise ValueError(f"No macro called {macro} exists")
-            
-        return self.macros[macro]
-
+            return self.macros[macro]
+        except (TypeError, KeyError):
+            return macro
         
     def parse(self, raw):
         lines = iter(clean_raw(raw))
@@ -92,13 +88,13 @@ class GameParser:
         for line in lines:
             if is_comment(line):
                 continue
-            
+
             logging.info(line)    
             line = remove_comments(line.strip())
             
-            if line.startswith(obj_names):
+            if line.startswith(tuple(f"{name} " for name in obj_names)):
                 obj.append(line.split()[0])
-            elif is_end(line):
+            elif is_end(line) and obj:
                 obj.pop(-1)
             elif obj:
                 key, value = line.split("=")
@@ -132,6 +128,9 @@ class GameParser:
         _, name, value = line.split(maxsplit=2)
         value = remove_comments(value, macro=True)
         name = name.strip()
+        
+        self.macros[name] = value
+        return 
         
         try:
             self.macros[name] = to_float(value)

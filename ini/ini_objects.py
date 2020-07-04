@@ -1,32 +1,55 @@
 from .enums import *
 from .utils import is_end, to_float
 from .objects import FilterList
+from .types import Float, Bool
 
 import sys
 import logging
 
 def get_obj(name):
     return getattr(sys.modules[__name__], name, None)
-    
+
 class IniObject:
-    def string(self, name, value):
-        setattr(self, f"_{name}", value)
-        setattr(self.__class__, name, property(lambda x: self.parser.get_string(getattr(self, f"_{name}"))))
+    def recursive(self, func, values):
+        values = self.parser.get_macro(values)
+        if isinstance(values, list):
+            return [self.recursive(func, value) for value in values]
         
-    def macro(self, name, value):
-        setattr(self, f"_{name}", value)
-        setattr(self.__class__, name, property(lambda x: self.parser.get_macro(getattr(self, f"_{name}"))))
+        if isinstance(values, dict):
+            return {x : self.recursive(func, y) for x, y in values.items()}
+            
+        return func(self, values)
         
-    def reference(self, name, value, dict_name):
-        setattr(self, f"_{name}", value)
-        setattr(self.__class__, name, property(lambda x: self.parser.get(dict_name, getattr(self, f"_{name}"))))
+    def string(other, name, value):
+        setattr(other, f"_{name}", value)
+        setattr(other.__class__, name, property(lambda self: self.parser.get_string(getattr(self, f"_{name}"))))
+
+    def value(other, name, value, value_type):
+        def func(self, v):
+            return value_type.convert(self.parser, v)
+            
+        setattr(other, f"_{name}", value)
+        setattr(other.__class__, name, property(lambda self: self.recursive(func, getattr(self, f"_{name}"))))
         
-    def references(self, name, values, dict_name):
-        setattr(self, f"_{name}", values)
-        setattr(self.__class__, name, property(lambda x: [self.parser.get(dict_name, value) for value in getattr(self, f"_{name}")]))
+    def enum(other, name, value, value_enum):
+        def func(self, v):
+            if v is not None:
+                return value_enum[v]
+            
+            return None
+
+        setattr(other, f"_{name}", value)
+        setattr(other.__class__, name, property(lambda self: self.recursive(func, getattr(self, f"_{name}"))))
+    
+    def reference(other, name, values, dict_name):
+        def func(self, v):
+            return self.parser.get(dict_name, v)
+        
+        setattr(other, f"_{name}", values)
+        setattr(other.__class__, name, property(lambda self: self.recursive(func, getattr(self, f"_{name}")) ))
 
     def __repr__(self):
-        return f"<{self.__class__.__name__} {self.name}"
+        return f"<{self.__class__.__name__} {self.name}>"
         
     special_attributes = {}
     nested_attributes = {}
@@ -43,7 +66,7 @@ class IniObject:
         while not is_end(line):
             logging.debug(line)
             if "=" in line:
-                key, value = line.split("=")
+                key, value = line.split("=", maxsplit=1)
                 key = key.strip()
                 
                 for special, func in cls.special_attributes.items():
@@ -81,23 +104,21 @@ class Armor(IniObject):
         flanked : float
         scalar : float
         
-        SEE DAMAGETYPES FOR THE RESTS
+        SEE DAMEGETYPES FOR THE REST
         
         """
         self.parser = parser
         
         self.name = name
-        self.DEFAULT = damage_types.pop("DEFAULT", 1.0)
-        self.flanked = damage_types.pop("FlankedPenalty", 1.0)
-        self.scalar = damage_types.pop("DamageScalar", 1.0)
+        self.value("DEFAULT", damage_types.pop("DEFAULT", 1.0), Float)
+        self.value("flanked", damage_types.pop("FlankedPenalty", 1.0), Float)
+        self.value("scalar", damage_types.pop("DamageScalar", 1.0), Float)
         
-        for damage in DamageTypes.__members__:
-            setattr(self, damage, damage_types.pop(damage, self.DEFAULT))
+        for damage, value in damage_types.items():
+            if damage in DamageTypes.__members__:
+                self.value(damage, value, Float)
             
         self.parser.armorsets[name] = self
-            
-    def __repr__(self):
-        return f"<ArmorSet {self.name}>"
         
     special_attributes = {
         "FlankedPenalty": {"default": lambda: 1, "func": lambda data, value: to_float(value)},
@@ -109,8 +130,13 @@ class Armor(IniObject):
         damage, percent = value.split()
         data[damage.strip()] = to_float(percent)
         
-    def get_damage_scalar(self, damagetype):
-        return getattr(self, damagetype.name)
+    def get_damage_scalar(self, damagetype, flanked = False):
+        value = getattr(self, damagetype.name, self.DEFAULT) * self.scalar
+        
+        if flanked:
+            return value + (value * flanked)
+        
+        return value
 
 class CommandSet(IniObject):
     """
@@ -231,10 +257,7 @@ class CommandButton(IniObject):
         self.__dict__.update(data)
         
         self.parser.commandbuttons[name] = self
-                
-    def __repr__(self):
-        return f"<CommandButton {self.name}>"
-        
+
     @property
     def label(self):
         return self.parser.get_string(self._label)
@@ -269,34 +292,33 @@ class Upgrade(IniObject):
     
     """
     def __init__(self, name, data, parser):
-        self.parser = parser
-        
+        self.parser = parser        
         self.name = name
-        self.type = UpgradeTypes[data.pop("Type")] if "Type" in data else None
+        
+        self.enum("type", data.pop("Type", None), UpgradeTypes)
         
         self.string("label", data.pop("DisplayName", None))
         self.string("description", data.pop("Tooltip", None))
         
-        self.macro("build_time", data.pop("BuildTime", None))
-        self.macro("build_cost", data.pop("BuildCost", None))
+        self.value("build_time", data.pop("BuildTime", None), Float)
+        self.value("build_cost", data.pop("BuildCost", None), Float)
         
         self.reference("button_image", data.pop("ButtonImage", None), "images")
         self.reference("cursor", data.pop("Cursor", None), "cursors")
         
-        self.persist_in_campaign = data.pop("PersistsInCampaign", "No") == "Yes"
-        self.no_upgrade_discount = data.pop("NoUpgradeDiscount", "No") == "Yes"
+        self.value("persist_in_campaign", data.pop("PersistsInCampaign", "No"), Bool)
+        self.value("no_upgrade_discount", data.pop("NoUpgradeDiscount", "No"), Bool)
         
         self.reference("object_for_discount", data.pop("UseObjectTemplateForCostDiscount", None), "objects")
         self.required_objects = FilterList(None, data.pop("RequiredObjectFilter", []))
         
         self.reference("icon", data.pop("StrategicIcon", None), "images")
-        self.references("sub_upgrades", data.pop("SubUpgradeTemplateNames", []), "upgrades")
+        self.reference("sub_upgrades", data.pop("SubUpgradeTemplateNames", []), "upgrades")
+        
+        self.__dict__.update(data)
         
         self.parser.upgrades[name] = self
-        
-    def __repr__(self):
-        return f"<Upgrade {self.name}>"
-        
+  
 class SelectionDecal(IniObject):
     def __init__(self, name, data, parser):
         self.name = name
@@ -308,7 +330,7 @@ class ExperienceLevel(IniObject):
     ExperienceAward : float
     Rank : float
     ExperienceAwardOwnGuysDie : float
-    Upgrades : Upgrade
+    Upgrades : List[Upgrade]
     InformUpdateModule : bool
     LevelUpTintColor : str
     LevelUpTintPreColorTime : float
@@ -323,11 +345,27 @@ class ExperienceLevel(IniObject):
     """
     def __init__(self, name, data, parser):
         self.parser = parser
+        self.name = name
         
+        self.reference("targets", data.pop("TargetNames", []), "objects")
+        self.value("required", data.pop("RequiredExperience", 0), Float)
+        self.value("award", data.pop("ExperienceAward", 0), Float)
+        self.value("rank", data.pop("Rank", 0), Float)
+        self.value("own_award", data.pop("ExperienceAwardOwnGuysDie", 0), Float)
+        
+        self.reference("upgrades", data.pop("Upgrades", []), "upgrades")
+        
+        self.value("inform_update", data.pop("InformUpdateModule", "No"), Bool)
+        
+        self.__dict__.update(data)
         
         self.parser.levels[name] = self
         
-    nested_attributes = {"SelectionDecal": SelectionDecal}  
+    nested_attributes = {"SelectionDecal": SelectionDecal} 
+    special_attributes = {
+        "TargetNames": {"default": list, "func": lambda data, value: value.split()},
+        "Upgrades": {"default": list, "func": lambda data, value: value.split()}
+    } 
         
 def modifier_func(data, value):
     key, value = value.split(maxsplit=1)
@@ -353,15 +391,13 @@ class ModifierList(IniObject):
         self.parser = parser
         
         self.name = name
-        self.category = ModifierCategories[data.pop("Category")] if "Category" in data else None
+        self.enum("category", data.pop("Category", None), ModifierCategories)
+        self.value("duration", data.pop("Duration", None), Float)
         
-        self.macro("duration", data.pop("Duration", None))
-        
-        self.replace_if_longest = data.pop("ReplaceInCategoryIfLongest", "No") == "Yes"
-        self.ignore_if_anti = data.pop("IgnoreIfAnticategoryActive", "No") == "Yes"
-        
-        self.multi_level_fx = data.pop("MultiLevelFX", "No") == "Yes"
-        
+        self.value("replace_if_longest", data.pop("ReplaceInCategoryIfLongest", "No"), Bool)
+        self.value("ignore_if_anti", data.pop("IgnoreIfAnticategoryActive", "No"), Bool)
+        self.value("multi_level_fx", data.pop("MultiLevelFX", "No"), Bool)
+
         self.reference("upgrade", data.pop("Upgrade", None), "upgrades")
         
         self.modifiers = {}
@@ -375,19 +411,89 @@ class ModifierList(IniObject):
                 
             self.modifiers[key] = value
             
-        self.parser.modifiers[name] = self
+        self.__dict__.update(data)
             
-    def __repr__(self):
-        return f"<ModifierList {self.name}>"
-        
+        self.parser.modifiers[name] = self
+  
     special_attributes = {
         "Modifier": {"default": dict, "func": modifier_func},
         "Upgrade": {"default": lambda: None, "func": lambda data, value: value.split()[0].strip()}
     }
         
+class Science(IniObject):
+    """
+    PrerequisiteSciences : List[Science]
+    SciencePurchasePointCost - int
+    IsGrantable - bool
+    SciencePurchasePointCostMP - int
+    """
+    
+    special_attributes = {
+        # "PrerequisiteSciences": {"default": list, "func": lambda data, value: value.split()} 
+    }
+    
+    def __init__(self, name, data, parser):
+        self.parser = parser
+        
+        self.name = name
+        sciences = data.pop("PrerequisiteSciences", ["NONE"])
+        if sciences[0] == "NONE":
+            sciences = []
+        else:
+            sciences = [x.split() for x in sciences.split("OR")]
+            
+        self.reference("prequisites", [] if sciences[0] == "NONE" else sciences, "sciences")
+        self.value("cost", data.pop("SciencePurchasePointCost", 0), Float)
+        self.value("is_grantable", data.pop("IsGrantable", "No"), Bool)
+        self.value("cost_mp", data.pop("SciencePurchasePointCostMP", 0), Float)
+        
+        self.__dict__.update(data)
+        
+        self.parser.sciences[name] = self
+        
+    def is_unlocked(self, sciences):
+        sciences = [y.name for y in sciences]
+        return any(all(x in sciences for x in preq) for preq in self._prequisites)
     
 class Object(IniObject):
     def __init__(self, name, kindsof):
         self.name = name
         self.kindof = kindsof
-    
+        
+class SpecialPower(IniObject):
+    """
+    Enum : SpecialPowerEnums
+    ReloadTime : float
+    PublicTimer : bool
+    ObjectFilter : FilterList
+    Flags : List[Flags]
+    RequiredSciences : List[Sciences]
+    InitiateAtLocationSound : Sound
+    ViewObjectDuration : float
+    ViewObjectRange : float
+    RadiusCursorRadius : float
+    MaxCastRange : float
+    ForbiddenObjectFilter : FilterList
+    ForbiddenObjectRange : float
+    """
+    def __init__(self, name, data, parser):
+        self.parser = parser
+        self.name = name
+        
+        self.enum("special_enum", data.pop("Enum", None), SpecialPowerEnums)
+        self.value("reload", data.pop("ReloadTime", 0), Float)
+        self.value("public_timer", data.pop("PublicTimer", "No"), Bool)
+        self.filter = FilterList(None, data.pop("ObjectFilter", []))
+        self.enum("flags", data.pop("Flags", []), Flags)
+        self.reference("sciences", data.pop("RequiredSciences", []), "sciences")
+        self.value("cursor_radius", data.pop("RadiusCursorRadius", 0), Float)
+        self.value("max_cast", data.pop("MaxCastRange", 0), Float)
+        self.forbidden = FilterList(None, data.pop("ForbiddenObjectFilter", 0))
+        self.value("forbidden_range", data.pop("ForbiddenObjectRange", 0), Float)
+        
+        self.parser.specialpowers[name] = self
+        
+    special_attributes = {
+        "Flags": {"default": list, "func": lambda data, value: value.split()},
+        "ForbiddenObjectFilter": {"default": list, "func": lambda data, value: value.split()}
+    }
