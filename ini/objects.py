@@ -94,3 +94,92 @@ class Operation:
     def value(self):
         return self.operation(*[self.parser.get_macro(x) for x in self.args])
         
+class IniObject:
+    def recursive(self, func, values):
+        values = self.parser.get_macro(values)
+        if isinstance(values, list):
+            return [self.recursive(func, value) for value in values]
+        
+        if isinstance(values, dict):
+            return {x : self.recursive(func, y) for x, y in values.items()}
+            
+        return func(self, values)
+        
+    def string(other, name, value):
+        setattr(other, f"_{name}", value)
+        setattr(other.__class__, name, property(lambda self: self.parser.get_string(getattr(self, f"_{name}"))))
+
+    def value(other, name, value, value_type):
+        def func(self, v):
+            return value_type.convert(self.parser, v)
+            
+        setattr(other, f"_{name}", value)
+        setattr(other.__class__, name, property(lambda self: self.recursive(func, getattr(self, f"_{name}"))))
+        
+    def enum(other, name, value, value_enum):
+        def func(self, v):
+            if v is not None:
+                return value_enum[v]
+            
+            return None
+
+        setattr(other, f"_{name}", value)
+        setattr(other.__class__, name, property(lambda self: self.recursive(func, getattr(self, f"_{name}"))))
+    
+    def reference(other, name, values, dict_name):
+        def func(self, v):
+            return self.parser.get(dict_name, v)
+        
+        setattr(other, f"_{name}", values)
+        setattr(other.__class__, name, property(lambda self: self.recursive(func, getattr(self, f"_{name}")) ))
+
+    def __repr__(self):
+        return f"<{self.__class__.__name__} {self.name}>"
+        
+    special_attributes = {}
+    nested_attributes = {}
+    
+    @staticmethod
+    def default_line_parse(data, value):
+        return value.strip()
+
+    @classmethod
+    def parse(cls, parser, name, lines):
+        line = next(lines)
+        data = {
+            **{x : y["default"]() for x, y in cls.special_attributes.items()}, 
+            **{x : list() for x in cls.nested_attributes.keys()}
+        }
+        
+        while not is_end(line):
+            logging.debug(line)
+            if "=" in line:
+                key, value = line.split("=", maxsplit=1)
+                key = key.strip()
+                
+                for special, func in cls.special_attributes.items():
+                    if key == special:
+                        returned = func["func"](data, value)
+                        if returned is not None:
+                            data[key] = returned
+                        break
+                else:
+                    data[key] = cls.default_line_parse(data, value)
+            else:
+                try:
+                    possible_name = line.split()
+                    if len(possible_name) == 2:
+                        obj_name = possible_name[0]
+                        new_name = possible_name[1]
+                    else:
+                        obj_name = line.strip()
+                        new_name = name
+                        
+                    data[obj_name].append(cls.nested_attributes[obj_name].parse(parser, new_name, lines))  
+                except KeyError:
+                    pass
+            
+            line = next(lines) 
+            
+        return cls(name, data, parser)
+        

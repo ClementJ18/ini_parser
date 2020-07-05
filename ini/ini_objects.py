@@ -1,99 +1,14 @@
 from .enums import *
 from .utils import is_end, to_float
-from .objects import FilterList
+from .objects import FilterList, IniObject
 from .types import Float, Bool
+from .nuggets import *
 
 import sys
 import logging
 
 def get_obj(name):
     return getattr(sys.modules[__name__], name, None)
-
-class IniObject:
-    def recursive(self, func, values):
-        values = self.parser.get_macro(values)
-        if isinstance(values, list):
-            return [self.recursive(func, value) for value in values]
-        
-        if isinstance(values, dict):
-            return {x : self.recursive(func, y) for x, y in values.items()}
-            
-        return func(self, values)
-        
-    def string(other, name, value):
-        setattr(other, f"_{name}", value)
-        setattr(other.__class__, name, property(lambda self: self.parser.get_string(getattr(self, f"_{name}"))))
-
-    def value(other, name, value, value_type):
-        def func(self, v):
-            return value_type.convert(self.parser, v)
-            
-        setattr(other, f"_{name}", value)
-        setattr(other.__class__, name, property(lambda self: self.recursive(func, getattr(self, f"_{name}"))))
-        
-    def enum(other, name, value, value_enum):
-        def func(self, v):
-            if v is not None:
-                return value_enum[v]
-            
-            return None
-
-        setattr(other, f"_{name}", value)
-        setattr(other.__class__, name, property(lambda self: self.recursive(func, getattr(self, f"_{name}"))))
-    
-    def reference(other, name, values, dict_name):
-        def func(self, v):
-            return self.parser.get(dict_name, v)
-        
-        setattr(other, f"_{name}", values)
-        setattr(other.__class__, name, property(lambda self: self.recursive(func, getattr(self, f"_{name}")) ))
-
-    def __repr__(self):
-        return f"<{self.__class__.__name__} {self.name}>"
-        
-    special_attributes = {}
-    nested_attributes = {}
-    
-    @staticmethod
-    def default_line_parse(data, value):
-        return value.strip()
-
-    @classmethod
-    def parse(cls, parser, name, lines):
-        line = next(lines)
-        data = {x : y["default"]() for x, y in cls.special_attributes.items()}
-        
-        while not is_end(line):
-            logging.debug(line)
-            if "=" in line:
-                key, value = line.split("=", maxsplit=1)
-                key = key.strip()
-                
-                for special, func in cls.special_attributes.items():
-                    if key == special:
-                        returned = func["func"](data, value)
-                        if returned is not None:
-                            data[key] = returned
-                        break
-                else:
-                    data[key] = cls.default_line_parse(data, value)
-            else:
-                try:
-                    possible_name = line.split()
-                    if len(possible_name) == 2:
-                        obj_name = possible_name[0]
-                        new_name = possible_name[1]
-                    else:
-                        obj_name = line.strip()
-                        new_name = name
-                        
-                    cls.nested_attributes[obj_name].parse(parser, new_name, lines)  
-                except KeyError:
-                    pass
-            
-            line = next(lines) 
-            
-        return cls(name, data, parser)
 
 class Armor(IniObject):
     def __init__(self, name, damage_types, parser):
@@ -352,7 +267,7 @@ class ExperienceLevel(IniObject):
         self.value("award", data.pop("ExperienceAward", 0), Float)
         self.value("rank", data.pop("Rank", 0), Float)
         self.value("own_award", data.pop("ExperienceAwardOwnGuysDie", 0), Float)
-        
+        self.decal = data.pop("SelectionDecal")[0] if data.get("SelectionDecal") else None
         self.reference("upgrades", data.pop("Upgrades", []), "upgrades")
         
         self.value("inform_update", data.pop("InformUpdateModule", "No"), Bool)
@@ -496,4 +411,136 @@ class SpecialPower(IniObject):
     special_attributes = {
         "Flags": {"default": list, "func": lambda data, value: value.split()},
         "ForbiddenObjectFilter": {"default": list, "func": lambda data, value: value.split()}
+    }    
+    
+class CreateObject(IniObject):
+    """
+    ObjectNames : List[Object]
+    IgnoreCommandPointLimit : bool
+    Disposition : Dispositions
+    Count : float
+    UseJustBuiltFlag : bool
+    JustBuiltDuration : float
+    StartingBusyTime : float
+    ClearRemovables : bool
+    FadeIn : bool
+    FadeTime : float
+    RequiredUpgrades : List[Upgrades]
+    Offset : coords
+    DispositionAngle : float
+    SpreadFormation : bool
+    MinDistanceAFormation : float
+    MinDistanceBFormation : float
+    MaxDistanceFormation : float
+    OrientInSecondaryDirection : bool
+    OrientationOffset : float
+    IssueMoveAfterCreation : bool
+    IgnoreAllObjects : bool
+    """
+    def __init__(self, name, data, parser):
+        self.name = None
+        
+        self.reference("objects", data.pop("ObjectNames", []), "objects")
+        self.value("ignore_cp_limit", data.pop("IgnoreCommandPointLimit", "No"), Bool)
+        self.enum("disposition", data.pop("Disposition", None), Dispositions)
+        self.value("count", data.pop("Count", 0), Float)
+        self.value("just_built_flag", data.pop("UseJustBuiltFlag", "No"), Bool)
+        self.value("just_built_duration", data.pop("JustBuiltDuration", 0), Float)
+        self.value("starting_busy_time", data.pop("StartingBusyTime", 0), Float)
+        self.value("clear_removables", data.pop("ClearRemovables", "No"), Bool)
+        self.value("fade_in", data.pop("FadeIn", "No"), Bool)
+        self.value("fade_time", data.pop("FadeTime", 0), Float)
+        self.reference("required_upgrades", data.pop("RequiredUpgrades", []), "upgrades")
+        self.value("disposition_angle", data.pop("DispositionAngle", 0), Float)
+        self.value("spread_formation", data.pop("SpreadFormation", "No"), Bool)
+        
+    special_attributes = {
+        "ObjectNames": {"default": list, "func": lambda data, value: value.split()},
+        "RequiredUpgrades": {"default": list, "func": lambda data, value: value.split()}
     }
+
+class ObjectCreationList(IniObject):
+    def __init__(self, name, data, parser):
+        parser.objectcreationlists[name] = data.pop("CreateObject")
+        
+    nested_attributes = {
+        "CreateObject": CreateObject
+    }
+    
+class Weapon(IniObject):
+    """
+    AttackRange : LEGOLAS_BOW_RANGE
+    RangeBonusMinHeight : EDAIN_SIEGE_RANGEBONUS_MINHEIGHT
+    RangeBonus : EDAIN_ARCHER_RANGEBONUS
+    RangeBonusPerFoot : EDAIN_SIEGE_RANGEBONUS_PERFOOT
+    WeaponSpeed : 801
+    MinWeaponSpeed : 300
+    MaxWeaponSpeed : 641
+    FireFX : FX_GloinShatterhammer
+    ScaleWeaponSpeed : Yes
+    HitPercentage : 70
+    ScatterRadius : 0
+    AcceptableAimDelta : 60
+    DelayBetweenShots : 1000
+    PreAttackDelay : GLORFINDEL_SWORD_PREATTACKDELAY
+    PreAttackType : PER_SHOT
+    FiringDuration : 1584
+    ClipSize : 3
+    AutoReloadsClip : NO
+    AutoReloadWhenIdle : 1800
+    ClipReloadTime : Max:1800
+    ContinuousFireOne : 0
+    ContinuousFireCoast : DWARVEN_MENOFDALE_BOW_RELOADTIME_MAX
+    AntiAirborneVehicle : Yes
+    AntiAirborneMonster : Yes
+    CanFireWhileMoving : Yes
+    ProjectileCollidesWith : WALLS
+    RadiusDamageAffects : SUICIDE
+    HitStoredTarget : Yes
+    PreferredTargetBone : B_LLLID
+    LeechRangeWeapon : Yes
+    MeleeWeapon : Yes
+    DamageDealtAtSelfPosition : Yes
+    PreAttackFX : FX_TrollTreeSwing
+    ShouldPlayUnderAttackEvaEvent : No
+    FireFlankFX : FX_Flanking
+    InstantLoadClipOnActivate : Yes
+    IdleAfterFiringDelay : 2000
+    MinimumAttackRange : ELVEN_VIGILANTENT_ROCK_RANGE_MIN
+    ProjectileSelf : Yes
+    PreAttackRandomAmount : 0
+    HitPassengerPercentage : 20%
+    CanBeDodged : Yes
+    NoVictimNeeded : Yes
+    BombardType : Yes
+    OverrideVoiceAttackSound : CorsairVoiceAttackFirebomb
+    OverrideVoiceEnterStateAttackSound : ElvenWarriorVoiceEnterStateAttackBow
+    RequireFollowThru : Yes
+    FinishAttackOnceStarted : Yes
+    HoldDuringReload : Yes
+    IsAimingWeapon : Yes
+    HoldAfterFiringDelay : 2000
+    ProjectileFilterInContainer : +GIMLI
+    AntiStructure : Yes
+    AntiGround : Yes
+    ScatterRadiusVsInfantry : 0.08
+    ScatterIndependently : Yes
+    PlayFXWhenStealthed : Yes
+    AimDirection : 270
+    FXTrigger : CATAPULT_ROCK
+    ShareTimers : Yes
+    DisableScatterForTargetsOnWall : Yes
+    DamageType : FLAME
+    CanSwoop : Yes
+    PassengerProportionalAttack : Yes
+    MaxAttackPassengers : 4
+    ChaseWeapon : Yes
+    CanFireWhileCharging : yes
+    IgnoreLinearFirstTarget : Yes
+    LinearTarget : 3.2
+    ForceDisplayPercentReady : Yes
+    AntiAirborneInfantry : Yes
+    LockWhenUsing : Yes
+    ProjectileStreamName : FlamethrowerProjectileStream
+    UseInnateAttributes : Yes
+    """

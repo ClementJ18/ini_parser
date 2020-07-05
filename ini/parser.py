@@ -20,6 +20,7 @@ class GameParser:
         self.levels = {}
         self.sciences = {}
         self.specialpowers = {}
+        self.objectcreationlists = {}
         
         self.cursors = {}
         self.images = {}
@@ -84,21 +85,26 @@ class GameParser:
         lines = clean_raw(raw)
         obj = []        
         objs = {x : defaultdict(set) for x in obj_names}
+        obj_names = '|'.join(obj_names)
         
         for line in lines:
             if is_comment(line):
                 continue
 
-            logging.info(line)    
-            line = remove_comments(line.strip())
             
-            if line.startswith(tuple(f"{name} " for name in obj_names)):
+            line = remove_comments(line.strip())
+            if re.match(fr"^({obj_names})\s*\w*$", line):
+                logging.info(f"NEW OBJECT {line}")    
                 obj.append(line.split()[0])
             elif is_end(line) and obj:
+                logging.info(f"OBJECT DONE {line}")    
                 obj.pop(-1)
             elif obj:
+                logging.info(line)
                 key, value = line.split("=")
                 objs[obj[-1]][key.strip()].update(value.split())
+            else:
+                logging.info(f"NO MATCH {line}")
                 
         return objs 
   

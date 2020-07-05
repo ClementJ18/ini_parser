@@ -27,3 +27,8 @@ class Float:
             return to_float(value)
         except ValueError:
             raise ValueError(f"Expected a MACRO or FLOAT but found {value}")
+            
+class Coords:
+    @classmethod
+    def convert(cls, parser, value):
+        return value

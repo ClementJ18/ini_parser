@@ -393,7 +393,18 @@ class Modifier(enum.Enum):
         return self.value > self.__class__.SEPARATOR.value
 
 class EmotionTypes(enum.Enum):
-    pass
+    TAUNT                       = 0
+    ALERT                       = 1
+    CHEER                       = 2
+    HERO_CHEER                  = 3
+    CHEER_FOR_ABOUT_TO_CRUSH    = 4
+    FEAR                        = 5
+    UNCONTROLLABLE_FEAR         = 6
+    TERROR                      = 7
+    DOOM                        = 8
+    BRACE_FOR_BEING_CRUSHED     = 9
+    POINT                       = 10
+    QUARRELSOME                 = 11
     
 class SpecialPowerEnums(enum.Enum):
     SPECIAL_SPELL_BOOK_ELVEN_GIFTS           = 0
@@ -411,3 +422,10 @@ class SpecialPowerEnums(enum.Enum):
     SPECIAL_BALROG_WINGS                     = 12
     SPECIAL_GENERAL_TARGETLESS               = 13
     SPECIAL_SHIELD_BUBBLE                    = 14
+    
+class Dispositions(enum.Enum):
+    USE_CLIFF            = 0
+    USE_WATER_SURFACE    = 1
+    ON_GROUND_ALIGNED    = 2
+    LIKE_EXISTING        = 3
+    RELATIVE_ANGLE       = 4
