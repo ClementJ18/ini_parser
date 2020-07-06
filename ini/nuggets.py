@@ -1,7 +1,10 @@
 from .objects import IniObject
+from .types import Float, Bool
 
 class Nugget(IniObject):
-    pass
+    def __init__(self, name, data, parser):
+        self.parser = parser
+        self.name = name
     
 class DamageNugget(Nugget):
     """
@@ -123,31 +126,57 @@ class ParalyzeNugget(Nugget):
 
 class EmotionWeaponNugget(Nugget):
     """
-    EmotionType : TERROR
-    Radius : 0
-    Duration : 5
-    SpecialObjectFilter : ANY ENEMIES +MONSTER
+    EmotionType : EmotionTypes
+    Radius : float
+    Duration : float
+    SpecialObjectFilter : FilterList
     """
-    pass
+    def __init__(self, name, data, parser):
+        self.parser = parser
+        self.name = name
+        
+        self.enum("emotion", data.pop("EmotionType", None), EmotionTypes)
+        self.value("radius", data.pop("Radius", None), Float)
+        self.value("duration", data.pop("Duration", None), Float)
+        self.special_filter = FilterList(None, data.pop("SpecialObjectFilter"))
 
 class FireLogicNugget(Nugget):
     """
-    LogicType : INCREASE_BURN_RATE
-    Radius : 40
-    Damage : 10
-    MinMaxBurnRate : 40
-    MinDecay : 25
-    MaxResistance : 1
+    LogicType : LogicTypes
+    Radius : float
+    Damage : float
+    MinMaxBurnRate : float
+    MinDecay : float
+    MaxResistance : float
     """
-    pass
+    def __init__(self, name, data, parser):
+        self.parser = parser
+        self.name = name
+        
+        self.enum("logic_type", data.pop("LogicType", None), LogicTypes)
+        self.value("radius", data.pop("Radius", None), Float)
+        self.value("damage", data.pop("Damage", None), Float)
+        self.value("burn_rate", data.pop("MinMaxBurnRate", None), Float)
+        self.value("decay", data.pop("MinDecay", None), Float)
+        self.value("resistance", data.pop("MaxResistance", None), Float)
 
 class SpecialModelConditionNugget(Nugget):
     """
-    ModelConditionNames : USER_3
-    ModelConditionDuration : 21000
-    SpecialObjectFilter : NONE +MordorMountainTroll 
+    ModelConditionNames : List[ModelConditions]
+    ModelConditionDuration : float
+    SpecialObjectFilter : FilterList
     """
-    pass
+    def __init__(self, name, data, parser):
+        self.parser = parser
+        self.name = name
+        
+        self.enum("conditions", data.pop("ModelConditionNames", []), ModelConditions)
+        self.value("conditions_duration", data.pop("ModelConditionDuration", None), Float)
+        self.special_filter = FilterList(None, data.pop("SpecialObjectFilter"))
+        
+    special_attributes = {
+        "ModelConditionNames": {"default": list, "func": lambda data, value: value.split()}
+    }
 
 class ClearNuggets(Nugget):
     """
@@ -157,10 +186,15 @@ class ClearNuggets(Nugget):
 
 class DamageFieldNugget(Nugget):
     """
-    WeaponTemplateName : SmallFireFieldWeapon
-    Duration : 3000
+    WeaponTemplateName : Weapon
+    Duration : float
     """
-    pass
+    def __init__(self, name, data, parser):
+        self.parser = parser
+        self.name = name
+        
+        self.reference("weapon", data.pop("WeaponTemplateName", None), "weapons")
+        self.value("duration", data.pop("Duration", None), Float)
 
 class HordeAttackNugget(Nugget):
     """
@@ -170,33 +204,57 @@ class HordeAttackNugget(Nugget):
 
 class SpawnAndFadeNugget(Nugget):
     """
-    ObjectTargetFilter : ANY +STRUCTURE +INFANTRY +CAVALRY +MONSTER -ROCK_VENDOR    ;where not to spawn?
-    SpawnedObjectName : IsengardDeployedExplosiveMine    ;What to spawn?
-    SpawnOffset : X:8 Y:1 Z:0    ;How far away from me to spawn?
+    ObjectTargetFilter : FilterList
+    SpawnedObjectName : Object
+    SpawnOffset : Coords
     """
-    pass
+    def __init__(self, name, data, parser):
+        self.parser = parser
+        self.name = name
+        
+        self.target_filter = FilterList(None, data.pop("ObjectTargetFilter", ""))
+        self.reference("object", data.pop("SpawnedObjectName", None), "objects")
+        self.value("offset", data.pop("SpawnOffset", None), Coords)
 
 class GrabNugget(Nugget):
     """
-    SpecialObjectFilter : ANY +GRAB_AND_DROP
-    ContainTargetOnEffect : Yes
-    ImpactTargetOnEffect : Yes
-    ShockWaveAmount : 50.0
-    ShockWaveRadius : 16.0
-    ShockWaveTaperOff : 0.75
-    ShockWaveZMult : 1.1
+    SpecialObjectFilter : FilterList
+    ContainTargetOnEffect : bool
+    ImpactTargetOnEffect : bool
+    ShockWaveAmount : float
+    ShockWaveRadius : float
+    ShockWaveTaperOff : float
+    ShockWaveZMult : float
     """
-    pass
+    def __init__(self, name, data, parser):
+        self.parser = parser
+        self.name = name
+        
+        self.special_filter = FilterList(None, data.pop("SpecialObjectFilter", ""))
+        self.value("contain_target", data.pop("ContainTargetOnEffect", "No"), Bool)
+        self.value("impact_target", data.pop("ImpactTargetOnEffect", "No"), Bool)
+        self.value("sw_amount", data.pop("ShockWaveAmount", None), Float)
+        self.value("sw_radius", data.pop("ShockWaveRadius", None), Float)
+        self.value("sw_taper_off", data.pop("ShockWaveTaperOff", None), Float)
+        self.value("sw_zmult", data.pop("ShockWaveZMult", None), Float)
 
 class LuaEventNugget(Nugget):
     """
-    LuaEvent : BeUncontrollablyAfraid
-    Radius : 200
-    SendToEnemies : Yes
-    SendToAllies : No
-    SendToNeutral : Yes
+    LuaEvent : LuaEvent
+    Radius : float
+    SendToEnemies : bool
+    SendToAllies : bool
+    SendToNeutral : bool
     """
-    pass
+    def __init__(self, name, data, parser):
+        self.parser = parser
+        self.name = name
+        
+        self.reference("event", data.pop("LuaEvent", None), "events")
+        self.value("radius", data.pop("Radius", None), Float)
+        self.value("to_enemies", data.pop("SendToEnemies", "No"), Bool)
+        self.value("to_allies", data.pop("SendToAllies", "No"), Bool)
+        self.value("to_neutral", data.pop("SendToNeutral", "No"), Bool)
 
 class SlaveAttackNugget(Nugget):
     """
@@ -206,15 +264,31 @@ class SlaveAttackNugget(Nugget):
 
 class DamageContainedNugget(Nugget):
     """
-    KillCount : 5
-    KillKindof : INFANTRY
-    KillKindofNot : NONE
-    DeathType : BURNED
+    KillCount : float
+    KillKindof : List[KindsOf]
+    KillKindofNot : List[KindsOf]
+    DeathType : DeathTypes
     """
-    pass
+    def __init__(self, name, data, parser):
+        self.parser = parser
+        self.name = name
+        
+        self.value("kill_count", data.pop("KillCount", 0), Float)
+        self.enum("kill", data.pop("KillKindof", []), KindsOf)
+        self.enum("no_kill", data.pop("KillKindofNot", []), KindsOf)
+        self.enum("death_type", data.pop("DeathType", None), DeathTypes)
+        
+    special_attributes {
+        "KillKindof": {"default": list, "func": lambda data, value: value.split()},
+        "KillKindofNot": {"default": list, "func": lambda data, value: value.split()},
+    }
 
 class OpenGateNugget(Nugget):
     """
-    Radius : 0.0
+    Radius : float
     """
-    pass
+    def __init__(self, name, data, parser):
+        self.parser = parser
+        self.name = name
+        
+        self.value("radius", data.pop("Radius", None), Float)

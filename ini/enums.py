@@ -429,3 +429,9 @@ class Dispositions(enum.Enum):
     ON_GROUND_ALIGNED    = 2
     LIKE_EXISTING        = 3
     RELATIVE_ANGLE       = 4
+
+class DeathTypes(enum.Enum):
+    pass
+    
+class LogicTypes(enum.Enum):
+    pass

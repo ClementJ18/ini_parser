@@ -1,7 +1,7 @@
 from .enums import *
 from .utils import is_end, to_float
 from .objects import FilterList, IniObject
-from .types import Float, Bool
+from .types import Float, Bool, Coords
 from .nuggets import *
 
 import sys
@@ -453,6 +453,7 @@ class CreateObject(IniObject):
         self.reference("required_upgrades", data.pop("RequiredUpgrades", []), "upgrades")
         self.value("disposition_angle", data.pop("DispositionAngle", 0), Float)
         self.value("spread_formation", data.pop("SpreadFormation", "No"), Bool)
+        self.value("offset", data.pop("Offset", None), Coords)
         
     special_attributes = {
         "ObjectNames": {"default": list, "func": lambda data, value: value.split()},
