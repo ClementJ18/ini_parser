@@ -31,6 +31,9 @@ class DamageTypes(enum.Enum):
     CAVALRY         = 25
     CAVALRY_RANGED  = 26
     POISON          = 27
+    
+class DamageFXTypes(enum.Enum):
+    pass
 
 class CommandTypes(enum.Enum):
     CANCEL_UNIT_BUILD               = 0

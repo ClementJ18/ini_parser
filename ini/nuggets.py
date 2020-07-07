@@ -70,59 +70,133 @@ class WeaponOCLNugget(Nugget):
     WeaponOCLName : OCL_OriDamagedPoison
     RequiredUpgradeNames : Upgrade_Held10RespawnLevel
     """
-    pass
+    def __init__(self, name, data, parser):
+        self.parser = parser
+        self.name = name
+        
+        self.reference("required_upgrades", data.pop("RequiredUpgradeNames", []), "upgrades")
+        self.reference("ocl", data.pop("WeaponOCLName", None), "objectcreationlists")
+        
+        
+    special_attributes = {
+        "RequiredUpgradeNames": {"default": list, "func": lambda data, value: value.split()}
+    }
 
 class AttributeModifierNugget(Nugget):
     """
-    AttributeModifier : AttributeModCrippleStrike_Level3
-    Radius : 10
-    SpecialObjectFilter : -ARMY_OF_DEAD
-    DamageFXType : GOOD_ARROW_PIERCE
-    ForbiddenUpgradeNames : Upgrade_CHW07
-    RequiredUpgradeNames : Upgrade_DwarvenFortressDwarvenStonework
-    AffectHordeMembers : Yes
+    AttributeModifier : ModifierList
+    Radius : float
+    SpecialObjectFilter : FilterList
+    DamageFXType : DamageFXTypes
+    ForbiddenUpgradeNames : List[Upgrade]
+    RequiredUpgradeNames : List[Upgrade]
+    AffectHordeMembers : bool
     """
-    pass
+    def __init__(self, name, data, parser):
+        self.parser = parser
+        self.name = name
+        
+        self.reference("modifier", data.pop("AttributeModifier", None), "modifiers")
+        self.value("radius", data.pop("Radius", None), Float)
+        self.special_filter = FilterList(None, data.pop("SpecialObjectFilter"))
+        self.enum("damage_type_fx", data.pop("DamageFXType", None), DamageFXTypes)
+        self.reference("required_upgrades", data.pop("RequiredUpgradeNames", []), "upgrades")
+        self.reference("forbidden_upgrades", data.pop("ForbiddenUpgradeNames", []), "upgrades")
+        self.value("affect_horde_members", data.pop("AffectHordeMembers", None), Bool)
+        
+    
+    special_attributes = {
+        "RequiredUpgradeNames": {"default": list, "func": lambda data, value: value.split()}
+        "ForbiddenUpgradeNames": {"default": list, "func": lambda data, value: value.split()}
+    }
 
 class StealMoneyNugget(Nugget):
     """
-    AmountStolenPerAttack : 5
-    SpecialObjectFilter : ANY
-    RequiredUpgradeNames : Upgrade_AngmarFortressSanctum
+    AmountStolenPerAttack : float
+    SpecialObjectFilter : FilterList
+    RequiredUpgradeNames : List[Upgrade]
     """
-    pass
+    def __init__(self, name, data, parser):
+        self.parser = parser
+        self.name = name
+        
+        self.value("amount_stolen", data.pop("AmountStolenPerAttack", None), Float)
+        self.special_filter = FilterList(None, data.pop("SpecialObjectFilter"))
+        self.reference("required_upgrades", data.pop("RequiredUpgradeNames", []), "upgrades")
+        
+    special_attributes = {
+        "RequiredUpgradeNames": {"default": list, "func": lambda data, value: value.split()}
+    }
+        
 
 class DOTNugget(Nugget):
     """
-    Damage : 10
-    Radius : 30.0
-    DelayTime : 1
-    DamageType : POISON
-    DamageFXType : POISON
-    DeathType : NORMAL
-    DamageInterval : 1000
-    DamageDuration : CREATE_A_HERO_ASSASSIN_DOT_DAMAGE_DURATION_L4
-    RequiredUpgradeNames : Upgrade_Held10RespawnLevel
-    DamageScalar : 0%
-    AcceptDamageAdd : Yes
-    SpecialObjectFilter : AFFECTED_BY_POISON_OBJECTFILTER
-    DamageSubType : BECOME_UNDEAD_ONCE
-    ForbiddenUpgradeNames : Upgrade_CreateAHeroPoisonAttack_Level3
+    Damage : float
+    Radius : float
+    DelayTime : float
+    DamageType : DamageTypes
+    DamageFXType : DamageFXTypes
+    DeathType : DeathTypes
+    DamageInterval : float
+    DamageDuration : float
+    RequiredUpgradeNames : List[Upgrade]
+    DamageScalar : float
+    AcceptDamageAdd : bool
+    SpecialObjectFilter : FilterList
+    DamageSubType : DamageTypes
+    ForbiddenUpgradeNames : List[Upgrade]
     """
-    pass
+    def __init__(self, name, data, parser):
+        self.parser = parser
+        self.name = name
+        
+        self.value("damage", data.pop("Damage", None), Float)
+        self.value("radius", data.pop("Radius", None), Float)
+        self.value("delay", data.pop("DelayTime", None), Float)
+        self.enum("damage_type", data.pop("DamageType", None), DamageTypes)
+        self.enum("damage_type_fx", data.pop("DamageFXType", None), DamageFXTypes)
+        self.enum("death_type", data.pop("DeathType", None), DeathTypes)
+        self.value("interval", data.pop("DamageInterval", None), Float)
+        self.value("duration", data.pop("DamageDuration", None), Float)
+        self.reference("required_upgrades", data.pop("RequiredUpgradeNames", []), "upgrades")
+        self.reference("forbidden_upgrades", data.pop("ForbiddenUpgradeNames", []), "upgrades")
+        self.value("scalar", data.pop("DamageScalar", None), float)
+        self.value("accept_damage_add", data.pop("AcceptDamageAdd", None), Bool)
+        self.special_filter = FilterList(None, data.pop("SpecialObjectFilter"))
+        self.enum("damage_sub_type", data.pop("DamageSubType", None), DamageTypes)
+    
+    special_attributes = {
+        "RequiredUpgradeNames": {"default": list, "func": lambda data, value: value.split()}
+        "ForbiddenUpgradeNames": {"default": list, "func": lambda data, value: value.split()}
+    }
 
 class ParalyzeNugget(Nugget):
     """
-    Radius : 10
-    Duration : 4500
-    SpecialObjectFilter : ENEMIES
-    FreezeAnimation : Yes
-    AffectHordeMembers : Yes
-    ParalyzeFX : FX_GenericDebuff
-    RequiredUpgradeNames : Upgrade_CHW03
-    ForbiddenUpgradeNames : Upgrade_CHW05
+    Radius : float
+    Duration : float
+    SpecialObjectFilter : FilterList
+    FreezeAnimation : bool
+    AffectHordeMembers : bool
+    ParalyzeFX : FX
+    RequiredUpgradeNames : List[Upgrades]
+    ForbiddenUpgradeNames : List[Upgrades]
     """
-    pass
+    def __init__(self, name, data, parser):
+        self.parser = parser
+        self.name = name
+        
+        self.value("radius", data.pop("Radius", None), Float)
+        self.value("duration", data.pop("Duration", None), Float)
+        self.special_filter = FilterList(None, data.pop("SpecialObjectFilter"))
+        self.value("freeze", data.pop("FreezeAnimation", None), Bool)
+        self.reference("fx", data.pop("ParalyzeFX", None), "fxs")
+        self.reference("required_upgrades", data.pop("RequiredUpgradeNames", []), "upgrades")
+        self.reference("forbidden_upgrades", data.pop("ForbiddenUpgradeNames", []), "upgrades")
+    
+    special_attributes = {
+        "RequiredUpgradeNames": {"default": list, "func": lambda data, value: value.split()}
+        "ForbiddenUpgradeNames": {"default": list, "func": lambda data, value: value.split()}
+    }
 
 class EmotionWeaponNugget(Nugget):
     """
