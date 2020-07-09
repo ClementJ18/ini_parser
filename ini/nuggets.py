@@ -1,74 +1,141 @@
-from .objects import IniObject
-from .types import Float, Bool
+from .objects import IniObject, FilterList
+from .types import Float, Bool, Coords
+from .enums import * 
 
 class Nugget(IniObject):
+    def __init__(self, name, data, parser):
+        self.name = name
+        self.parser = parser
+    
+class DamageNugget(Nugget):
+    """
+    Damage : float
+    Radius : float
+    DelayTime : float
+    DamageType : DamageTypes
+    DamageFXType : DamageFXTypes
+    DeathType : DeathTypes
+    DamageScalar : float
+    DamageArc : float
+    FlankingBonus : float
+    ForbiddenUpgradeNames : List[Upgrade]
+    RequiredUpgradeNames : List[Upgrade]
+    AcceptDamageAdd : bool
+    SpecialObjectFilter : FilterList
+    DamageTaperOff : float
+    DamageSpeed : float
+    DamageSubType : DamageTypes
+    DrainLife : bool
+    DrainLifeMultiplier : float
+    CylinderAOE : bool
+    DamageMaxHeight : float
+    DamageArcInverted : bool
+    ForceKillObjectFilter : FilterList
+    DamageMaxHeightAboveTerrain : float
+    """
+    def __init__(self, name, data, parser):
+        self.parser = parser
+        self.name = name
+        
+        self.value("damage", data.pop("Damage", None), Float)
+        self.value("radius", data.pop("Radius", None), Float)
+        self.value("delay_time", data.pop("DelayTime", None), Float)
+        self.enum("damage_type", data.pop("DamageType", None), DamageTypes)
+        self.enum("damage_type_fx", data.pop("DamageFXType", None), DamageFXTypes)
+        self.enum("damage_sub_type", data.pop("DamageSubType", None), DamageTypes)
+        self.enum("death_type", data.pop("DeathType", None), DeathTypes)
+        self.value("damage_scalar", data.pop("DamageScalar", None), Float)
+        self.value("damage_arc", data.pop("DamageArc", None), Float)
+        self.value("flanking_bonus", data.pop("FlankingBonus", None), Float)
+        self.value("accept_damage_add", data.pop("AcceptDamageAdd", None), Bool)
+        self.value("damage_taper_off", data.pop("DamageTaperOff", None), Float)
+        self.value("damage_speed", data.pop("DamageSpeed", None), Float)
+        self.special_filter = FilterList(None, data.pop("SpecialObjectFilter", ""))    
+        self.kill_filter = FilterList(None, data.pop("KillObjectFilter", ""))
+        self.reference("required_upgrades", data.pop("RequiredUpgradeNames", []), "upgrades")
+        self.reference("forbidden_upgrades", data.pop("ForbiddenUpgradeNames", []), "upgrades")
+        self.value("drain_life", data.pop("DrainLife", None), Bool)
+        self.value("drain_life_multiplier", data.pop("DrainLifeMultiplier", None), Float)
+    
+    special_attributes = {
+        "RequiredUpgradeNames": {"default": list, "func": lambda data, value: value.split()},
+        "ForbiddenUpgradeNames": {"default": list, "func": lambda data, value: value.split()}
+    }
+
+class MetaImpactNugget(Nugget):
+    """
+    HeroResist : float
+    ShockWaveAmount : float
+    ShockWaveRadius : float
+    ShockWaveArc : float
+    ShockWaveTaperOff : float
+    SpecialObjectFilter : FilterList
+    ShockWaveSpeed : float
+    ShockWaveZMult : float
+    RequiredUpgradeNames : List[Upgrade]
+    ForbiddenUpgradeNames : List[Upgrade]
+    KillObjectFilter : FilterList
+    OnlyWhenJustDied : bool
+    DelayTime : float
+    """
     def __init__(self, name, data, parser):
         self.parser = parser
         self.name = name
     
-class DamageNugget(Nugget):
-    """
-    Damage : CREATE_A_HERO_CLEAR_GARRISON_DAMAGE
-    Radius : CREATE_A_HERO_FIREBALL_RADIUS_LVL_2
-    DelayTime : 0
-    DamageType : MAGIC
-    DamageFXType : UNDEFINED
-    DeathType : NORMAL
-    DamageScalar : FORGED_BLADES_PIKEMAN_VS_CAVALRY
-    DamageArc : 45
-    FlankingBonus : 100%
-    ForbiddenUpgradeNames : Upgrade_MordorForgedBlades
-    RequiredUpgradeNames : Upgrade_MordorForgedBlades
-    AcceptDamageAdd : No
-    SpecialObjectFilter : +MACHINE
-    DamageTaperOff : 30
-    DamageSpeed : 700.0
-    DamageSubType : BECOME_UNDEAD
-    DrainLife : Yes
-    DrainLifeMultiplier : 0.75
-    CylinderAOE : Yes
-    DamageMaxHeight : 60
-    DamageArcInverted : Yes
-    ForceKillObjectFilter : +INFANTRY
-    DamageMaxHeightAboveTerrain : 1
-    """
-    pass
-
-class MetaImpactNugget(Nugget):
-    """
-    HeroResist : WEAK_SPELL_HERORESIST
-    ShockWaveAmount : 5.0
-    ShockWaveRadius : 5.0
-    ShockWaveArc : 120
-    ShockWaveTaperOff : 0.5
-    SpecialObjectFilter : NONE
-    ShockWaveSpeed : 0.0
-    ShockWaveZMult : 1.0
-    RequiredUpgradeNames : Upgrade_ThalKaserneLevel3
-    ForbiddenUpgradeNames : Upgrade_OriSchicksal
-    KillObjectFilter : INSTANT_DEATH_ON_METAIMPACT_OBJFILTER
-    OnlyWhenJustDied : Yes
-    DelayTime : 200
-    """
-    pass
+        self.value("resist", data.pop("HeroResist", None), Float)
+        self.value("sw_amount", data.pop("ShockWaveAmount", None), Float)
+        self.value("sw_radius", data.pop("ShockWaveRadius", None), Float)
+        self.value("sw_arc", data.pop("ShockWaveArc", None), Float)
+        self.value("sw_taper_off", data.pop("ShockWaveTaperOff", None), Float)
+        self.value("sw_speed", data.pop("ShockWaveSpeed", None), Float)
+        self.value("sw_zmult", data.pop("ShockWaveZMult", None), Float)
+        self.special_filter = FilterList(None, data.pop("SpecialObjectFilter", ""))    
+        self.kill_filter = FilterList(None, data.pop("KillObjectFilter", ""))
+        self.reference("required_upgrades", data.pop("RequiredUpgradeNames", []), "upgrades")
+        self.reference("forbidden_upgrades", data.pop("ForbiddenUpgradeNames", []), "upgrades")
+        self.value("only_when_just_died", data.pop("OnlyWhenJustDied", None), Bool)
+        self.value("delay_time",data.pop("DelayTime", None), Float)
+    
+    
+    special_attributes = {
+        "RequiredUpgradeNames": {"default": list, "func": lambda data, value: value.split()},
+        "ForbiddenUpgradeNames": {"default": list, "func": lambda data, value: value.split()}
+    }
 
 class ProjectileNugget(Nugget):
     """
-    WarheadTemplateName : CreateAHeroStachelderVergeltungWarhead_Level1_JotE
-    ProjectileTemplateName : DwarvenCatapultRockProjectile2
-    ForbiddenUpgradeNames : Upgrade_GoodFortressFlamingMunitions
-    SpecialObjectFilter : -MACHINE
-    RequiredUpgradeNames : Upgrade_GoodFortressFlamingMunitions
+    WarheadTemplateName : Weapon
+    ProjectileTemplateName : Object
+    ForbiddenUpgradeNames : List[Upgrade]
+    SpecialObjectFilter : FilterList
+    RequiredUpgradeNames : List[Upgrade]
     WeaponLaunchBoneSlotOverride : SECONDARY
-    AlwaysAttackHereOffset : Z:0
-    UseAlwaysAttackOffset : Yes
+    AlwaysAttackHereOffset : Coords
+    UseAlwaysAttackOffset : Bool
     """
-    pass
+    def __init__(self, name, data, parser):
+        self.parser = parser
+        self.name = name
+        
+        self.reference("warhead", data.pop("WarheadTemplateName", None), "weapons")
+        self.reference("projectile", data.pop("ProjectileTemplateName", None), "objects")
+        self.value("attack_here_offset", data.pop("AlwaysAttackHereOffset", None), Coords)
+        self.value("use_offset", data.pop("UseAlwaysAttackOffset", None), Bool)
+        #weapon bone
+        self.special_filter = FilterList(None, data.pop("SpecialObjectFilter", ""))
+        self.reference("required_upgrades", data.pop("RequiredUpgradeNames", []), "upgrades")
+        self.reference("forbidden_upgrades", data.pop("ForbiddenUpgradeNames", []), "upgrades")
+    
+    special_attributes = {
+        "RequiredUpgradeNames": {"default": list, "func": lambda data, value: value.split()},
+        "ForbiddenUpgradeNames": {"default": list, "func": lambda data, value: value.split()}
+    }
+        
 
 class WeaponOCLNugget(Nugget):
     """
-    WeaponOCLName : OCL_OriDamagedPoison
-    RequiredUpgradeNames : Upgrade_Held10RespawnLevel
+    WeaponOCLName : List[ObjectCreate]
+    RequiredUpgradeNames : List[Upgrade]
     """
     def __init__(self, name, data, parser):
         self.parser = parser
@@ -98,7 +165,7 @@ class AttributeModifierNugget(Nugget):
         
         self.reference("modifier", data.pop("AttributeModifier", None), "modifiers")
         self.value("radius", data.pop("Radius", None), Float)
-        self.special_filter = FilterList(None, data.pop("SpecialObjectFilter"))
+        self.special_filter = FilterList(None, data.pop("SpecialObjectFilter", ""))
         self.enum("damage_type_fx", data.pop("DamageFXType", None), DamageFXTypes)
         self.reference("required_upgrades", data.pop("RequiredUpgradeNames", []), "upgrades")
         self.reference("forbidden_upgrades", data.pop("ForbiddenUpgradeNames", []), "upgrades")
@@ -106,7 +173,7 @@ class AttributeModifierNugget(Nugget):
         
     
     special_attributes = {
-        "RequiredUpgradeNames": {"default": list, "func": lambda data, value: value.split()}
+        "RequiredUpgradeNames": {"default": list, "func": lambda data, value: value.split()},
         "ForbiddenUpgradeNames": {"default": list, "func": lambda data, value: value.split()}
     }
 
@@ -121,7 +188,7 @@ class StealMoneyNugget(Nugget):
         self.name = name
         
         self.value("amount_stolen", data.pop("AmountStolenPerAttack", None), Float)
-        self.special_filter = FilterList(None, data.pop("SpecialObjectFilter"))
+        self.special_filter = FilterList(None, data.pop("SpecialObjectFilter", ""))
         self.reference("required_upgrades", data.pop("RequiredUpgradeNames", []), "upgrades")
         
     special_attributes = {
@@ -162,11 +229,11 @@ class DOTNugget(Nugget):
         self.reference("forbidden_upgrades", data.pop("ForbiddenUpgradeNames", []), "upgrades")
         self.value("scalar", data.pop("DamageScalar", None), float)
         self.value("accept_damage_add", data.pop("AcceptDamageAdd", None), Bool)
-        self.special_filter = FilterList(None, data.pop("SpecialObjectFilter"))
+        self.special_filter = FilterList(None, data.pop("SpecialObjectFilter", ""))
         self.enum("damage_sub_type", data.pop("DamageSubType", None), DamageTypes)
     
     special_attributes = {
-        "RequiredUpgradeNames": {"default": list, "func": lambda data, value: value.split()}
+        "RequiredUpgradeNames": {"default": list, "func": lambda data, value: value.split()},
         "ForbiddenUpgradeNames": {"default": list, "func": lambda data, value: value.split()}
     }
 
@@ -187,14 +254,14 @@ class ParalyzeNugget(Nugget):
         
         self.value("radius", data.pop("Radius", None), Float)
         self.value("duration", data.pop("Duration", None), Float)
-        self.special_filter = FilterList(None, data.pop("SpecialObjectFilter"))
+        self.special_filter = FilterList(None, data.pop("SpecialObjectFilter", ""))
         self.value("freeze", data.pop("FreezeAnimation", None), Bool)
         self.reference("fx", data.pop("ParalyzeFX", None), "fxs")
         self.reference("required_upgrades", data.pop("RequiredUpgradeNames", []), "upgrades")
         self.reference("forbidden_upgrades", data.pop("ForbiddenUpgradeNames", []), "upgrades")
     
     special_attributes = {
-        "RequiredUpgradeNames": {"default": list, "func": lambda data, value: value.split()}
+        "RequiredUpgradeNames": {"default": list, "func": lambda data, value: value.split()},
         "ForbiddenUpgradeNames": {"default": list, "func": lambda data, value: value.split()}
     }
 
@@ -212,7 +279,7 @@ class EmotionWeaponNugget(Nugget):
         self.enum("emotion", data.pop("EmotionType", None), EmotionTypes)
         self.value("radius", data.pop("Radius", None), Float)
         self.value("duration", data.pop("Duration", None), Float)
-        self.special_filter = FilterList(None, data.pop("SpecialObjectFilter"))
+        self.special_filter = FilterList(None, data.pop("SpecialObjectFilter", ""))
 
 class FireLogicNugget(Nugget):
     """
@@ -246,7 +313,7 @@ class SpecialModelConditionNugget(Nugget):
         
         self.enum("conditions", data.pop("ModelConditionNames", []), ModelConditions)
         self.value("conditions_duration", data.pop("ModelConditionDuration", None), Float)
-        self.special_filter = FilterList(None, data.pop("SpecialObjectFilter"))
+        self.special_filter = FilterList(None, data.pop("SpecialObjectFilter", ""))
         
     special_attributes = {
         "ModelConditionNames": {"default": list, "func": lambda data, value: value.split()}
@@ -352,9 +419,9 @@ class DamageContainedNugget(Nugget):
         self.enum("no_kill", data.pop("KillKindofNot", []), KindsOf)
         self.enum("death_type", data.pop("DeathType", None), DeathTypes)
         
-    special_attributes {
+    special_attributes = {
         "KillKindof": {"default": list, "func": lambda data, value: value.split()},
-        "KillKindofNot": {"default": list, "func": lambda data, value: value.split()},
+        "KillKindofNot": {"default": list, "func": lambda data, value: value.split()}
     }
 
 class OpenGateNugget(Nugget):

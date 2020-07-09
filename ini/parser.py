@@ -21,6 +21,8 @@ class GameParser:
         self.sciences = {}
         self.specialpowers = {}
         self.objectcreationlists = {}
+        self.objects = {}
+        self.weapons = {}
         
         self.cursors = {}
         self.images = {}

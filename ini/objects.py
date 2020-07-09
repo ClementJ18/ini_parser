@@ -1,6 +1,8 @@
 from .enums import Descriptors, Relations, KindsOf
+from .utils import is_end
 
 import re
+import logging
 
 class String:
     """
@@ -166,18 +168,20 @@ class IniObject:
                 else:
                     data[key] = cls.default_line_parse(data, value)
             else:
-                try:
-                    possible_name = line.split()
-                    if len(possible_name) == 2:
-                        obj_name = possible_name[0]
-                        new_name = possible_name[1]
-                    else:
-                        obj_name = line.strip()
-                        new_name = name
+                possible_name = line.split()
+                if len(possible_name) == 2:
+                    obj_name = possible_name[0]
+                    new_name = possible_name[1]
+                else:
+                    obj_name = line.strip()
+                    new_name = name
                         
-                    data[obj_name].append(cls.nested_attributes[obj_name].parse(parser, new_name, lines))  
-                except KeyError:
-                    pass
+                for key, values in cls.nested_attributes.items():
+                    try:
+                        index = [x.__name__ for x in values].index(obj_name)
+                        data[key].append(values[index].parse(parser, new_name, lines)) 
+                    except ValueError:
+                        pass
             
             line = next(lines) 
             

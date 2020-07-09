@@ -438,3 +438,6 @@ class DeathTypes(enum.Enum):
     
 class LogicTypes(enum.Enum):
     pass
+    
+class WeaponBone(enum.Enum):
+    pass

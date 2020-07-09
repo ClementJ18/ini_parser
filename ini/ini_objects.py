@@ -1,11 +1,10 @@
 from .enums import *
-from .utils import is_end, to_float
+from .utils import to_float
 from .objects import FilterList, IniObject
 from .types import Float, Bool, Coords
 from .nuggets import *
 
 import sys
-import logging
 
 def get_obj(name):
     return getattr(sys.modules[__name__], name, None)
@@ -276,7 +275,7 @@ class ExperienceLevel(IniObject):
         
         self.parser.levels[name] = self
         
-    nested_attributes = {"SelectionDecal": SelectionDecal} 
+    nested_attributes = {"SelectionDecal": [SelectionDecal]} 
     special_attributes = {
         "TargetNames": {"default": list, "func": lambda data, value: value.split()},
         "Upgrades": {"default": list, "func": lambda data, value: value.split()}
@@ -371,10 +370,31 @@ class Science(IniObject):
         return any(all(x in sciences for x in preq) for preq in self._prequisites)
     
 class Object(IniObject):
-    def __init__(self, name, kindsof):
+    def __init__(self, name, data, parser):
         self.name = name
-        self.kindof = kindsof
+        self.parser = parser
         
+        self.__dict__.update(data)
+        
+        self.parser.objects[name] = self
+        
+class ChildObject(Object):
+    def __init__(self, name, data, parser):
+        parent, true_name = name.split()
+        
+        self.reference("parent", parent, "objects")
+        super().__init__(true_name, data, parser)
+        
+    def __getattribute__(self, name):
+        try:
+            item = super().__getattribute__(name)
+        except AttributeError:
+            pass
+        else:
+            return item
+            
+        return object.__getattribute__(self.parent, name)
+
 class SpecialPower(IniObject):
     """
     Enum : SpecialPowerEnums
@@ -465,13 +485,13 @@ class ObjectCreationList(IniObject):
         parser.objectcreationlists[name] = data.pop("CreateObject")
         
     nested_attributes = {
-        "CreateObject": CreateObject
+        "CreateObject": [CreateObject]
     }
     
 class Weapon(IniObject):
     """
-    AttackRange : LEGOLAS_BOW_RANGE
-    RangeBonusMinHeight : EDAIN_SIEGE_RANGEBONUS_MINHEIGHT
+    AttackRange : float
+    RangeBonusMinHeight : float
     RangeBonus : EDAIN_ARCHER_RANGEBONUS
     RangeBonusPerFoot : EDAIN_SIEGE_RANGEBONUS_PERFOOT
     WeaponSpeed : 801
@@ -545,3 +565,20 @@ class Weapon(IniObject):
     ProjectileStreamName : FlamethrowerProjectileStream
     UseInnateAttributes : Yes
     """
+    
+    nested_attributes = {
+        "Nuggets": [
+            AttributeModifierNugget, ClearNuggets, DOTNugget, DamageContainedNugget, DamageFieldNugget, 
+            DamageNugget, EmotionWeaponNugget, FireLogicNugget, GrabNugget, HordeAttackNugget, LuaEventNugget, 
+            MetaImpactNugget, OpenGateNugget, ParalyzeNugget, ProjectileNugget, SlaveAttackNugget, SpawnAndFadeNugget, 
+            SpecialModelConditionNugget, StealMoneyNugget, WeaponOCLNugget
+        ]
+    }
+    
+    def __init__(self, name, data, parser):
+        self.name = name
+        self.parser = parser
+        
+        self.nuggets = data.pop("Nuggets")
+        
+        self.parser.weapons[name] = self
