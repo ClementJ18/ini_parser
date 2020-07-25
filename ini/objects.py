@@ -147,15 +147,21 @@ class IniObject:
 
     @classmethod
     def parse(cls, parser, name, lines):
+        from .behaviors import get_behavior
         line = next(lines)
         data = {
+            "modules": {},
             **{x : y["default"]() for x, y in cls.special_attributes.items()}, 
             **{x : list() for x in cls.nested_attributes.keys()}
         }
         
         while not is_end(line):
             logging.debug(line)
-            if "=" in line:
+            if line.startswith("Behavior"):
+                _, _, behavior, bh_name = line.split()
+                if obj := get_behavior(behavior):
+                    data["modules"][bh_name] = obj.parse(parser, bh_name, lines)
+            elif "=" in line:
                 key, value = line.split("=", maxsplit=1)
                 key = key.strip()
                 

@@ -384,13 +384,14 @@ class Modifier(enum.Enum):
     PRODUCTION                      = 16
     HEALTH_MULT                     = 17
     RATE_OF_FIRE                    = 18
-    MIN_CRUSH_VELOCITY_PERCENTAGE   = 19
+    MINIMUM_CRUSH_VELOCITY          = 19
     DAMAGE_STRUCTURE_BOUNTY_ADD     = 20
     COMMAND_POINT_BONUS             = 21
     CRUSHABLE_LEVEL                 = 22
     INVULNERABLE                    = 23
     BOUNTY_PERCENTAGE               = 24
     CRUSHED_DECELERATE              = 25
+    CRUSHER_LEVEL                   = 26
     
     def is_mult(self):
         return self.value > self.__class__.SEPARATOR.value

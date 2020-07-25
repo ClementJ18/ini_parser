@@ -1,4 +1,5 @@
 import re
+import sys
 
 COMMENTS_NO_MACROS = (";", "/")
 COMMENTS = (*COMMENTS_NO_MACROS, "#")
@@ -32,3 +33,10 @@ def read_file(path):
 def to_float(value):
     number = float(value.replace("%", "").strip())
     return number if not "%" in value else number / 100
+    
+def string_comparator(self, original, changed):
+    deleted = [x for x in original if x not in changed]
+    new = [x for x in changed if x not in original]
+    changed = [x for x in original if original.get(x).value != changed.get(x, String("NULL:NULL", "NULL")).value and changed.get(x) is not None]
+    
+    return changed, delete, new

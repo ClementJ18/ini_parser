@@ -165,8 +165,8 @@ class CommandButton(IniObject):
         self.string("label", data.pop("TextLabel", None))
         self.string("description", data.pop("DescriptLabel", None))
         
-        self.command = CommandTypes[data.pop("Command")] if "Command" in data else None
-        # self.options = [Options[x] for x in data.pop("Options")]
+        self.enum("command", data.pop("Command", None), CommandTypes)
+        self.enum("options", data.pop("Options", []), Options)
         
         self.__dict__.update(data)
         
@@ -283,7 +283,7 @@ class ExperienceLevel(IniObject):
         
 def modifier_func(data, value):
     key, value = value.split(maxsplit=1)
-    data["Modifier"][key.strip()] = value.split()
+    data["Modifier"][key.strip()] = value
 
 class ModifierList(IniObject):
     """
@@ -301,6 +301,8 @@ class ModifierList(IniObject):
     Upgrade : Upgrade
     EndFX : FX
     """
+    ARMOR_BUFFS = ["INVULNERABLE", "ARMOR"]
+    
     def __init__(self, name, data, parser):
         self.parser = parser
         
@@ -314,18 +316,10 @@ class ModifierList(IniObject):
 
         self.reference("upgrade", data.pop("Upgrade", None), "upgrades")
         
-        self.modifiers = {}
-        for key, value in data.pop("Modifiers", {}).items():
-            key = Modifier[key]
-            
-            try:
-                value = to_float(value)
-            except ValueError:
-                value = [DamageTypes[x] for x in value.split()[1:]]
-                
-            self.modifiers[key] = value
-            
-        self.__dict__.update(data)
+        self._modifiers = {}
+        for key, value in data.pop("Modifier", {}).items():
+            key = Modifier[key]                        
+            self._modifiers[key] = value
             
         self.parser.modifiers[name] = self
   
@@ -333,6 +327,33 @@ class ModifierList(IniObject):
         "Modifier": {"default": dict, "func": modifier_func},
         "Upgrade": {"default": lambda: None, "func": lambda data, value: value.split()[0].strip()}
     }
+    
+    def description(self):
+        pass
+        
+    def get_modifier(self, modifier_type : Modifier, damage_type : DamageTypes = None):
+        if self._modifiers.get(modifier_type) is None:
+            return None
+        
+        modifier = self.parser.get_macro(self._modifiers[modifier_type])
+        if modifier_type.name in self.ARMOR_BUFFS:
+            value = modifier.split(maxsplit=1)
+            mod = to_float(self.parser.get_macro(value[0]))
+            if len(value) > 1:
+                damage_types = [DamageTypes[self.parser.get_macro(x)] for x in value[1].split()]
+            else:
+                damage_types = []
+                
+            if damage_type is None:
+                return (mod, damage_types)
+            
+            if damage_type in damage_types or not damage_types:
+                return mod
+            
+            return 1 if damage_type.is_mult() else 0
+        
+        return to_float(modifier)
+            
         
 class Science(IniObject):
     """
@@ -373,10 +394,19 @@ class Object(IniObject):
     def __init__(self, name, data, parser):
         self.name = name
         self.parser = parser
+        self.modules = data.pop("modules")
         
         self.__dict__.update(data)
         
+        
+        self.upgades = {}
         self.parser.objects[name] = self
+        
+    def call_special_power(self, power):
+        return [x for x in self.modules if x.trigger.name == power.name]
+        
+    def give_upgrade(self, upgrade):
+        self.upgrades[upgrade.name] = upgrade
         
 class ChildObject(Object):
     def __init__(self, name, data, parser):
@@ -492,78 +522,78 @@ class Weapon(IniObject):
     """
     AttackRange : float
     RangeBonusMinHeight : float
-    RangeBonus : EDAIN_ARCHER_RANGEBONUS
-    RangeBonusPerFoot : EDAIN_SIEGE_RANGEBONUS_PERFOOT
-    WeaponSpeed : 801
-    MinWeaponSpeed : 300
-    MaxWeaponSpeed : 641
-    FireFX : FX_GloinShatterhammer
-    ScaleWeaponSpeed : Yes
-    HitPercentage : 70
-    ScatterRadius : 0
-    AcceptableAimDelta : 60
-    DelayBetweenShots : 1000
-    PreAttackDelay : GLORFINDEL_SWORD_PREATTACKDELAY
-    PreAttackType : PER_SHOT
-    FiringDuration : 1584
-    ClipSize : 3
-    AutoReloadsClip : NO
-    AutoReloadWhenIdle : 1800
+    RangeBonus : float
+    RangeBonusPerFoot : float
+    WeaponSpeed : float
+    MinWeaponSpeed : float
+    MaxWeaponSpeed : float
+    FireFX : FX
+    ScaleWeaponSpeed : bool
+    HitPercentage : float
+    ScatterRadius : float
+    AcceptableAimDelta : float
+    DelayBetweenShots : float
+    PreAttackDelay : float
+    PreAttackType : float
+    FiringDuration : float
+    ClipSize : float
+    AutoReloadsClip : bool
+    AutoReloadWhenIdle : float
     ClipReloadTime : Max:1800
-    ContinuousFireOne : 0
-    ContinuousFireCoast : DWARVEN_MENOFDALE_BOW_RELOADTIME_MAX
-    AntiAirborneVehicle : Yes
-    AntiAirborneMonster : Yes
-    CanFireWhileMoving : Yes
+    ContinuousFireOne : float
+    ContinuousFireCoast : float
+    AntiAirborneVehicle : bool
+    AntiAirborneMonster : bool
+    CanFireWhileMoving : bool
     ProjectileCollidesWith : WALLS
     RadiusDamageAffects : SUICIDE
-    HitStoredTarget : Yes
+    HitStoredTarget : bool
     PreferredTargetBone : B_LLLID
-    LeechRangeWeapon : Yes
-    MeleeWeapon : Yes
-    DamageDealtAtSelfPosition : Yes
-    PreAttackFX : FX_TrollTreeSwing
-    ShouldPlayUnderAttackEvaEvent : No
-    FireFlankFX : FX_Flanking
-    InstantLoadClipOnActivate : Yes
-    IdleAfterFiringDelay : 2000
-    MinimumAttackRange : ELVEN_VIGILANTENT_ROCK_RANGE_MIN
-    ProjectileSelf : Yes
-    PreAttackRandomAmount : 0
-    HitPassengerPercentage : 20%
-    CanBeDodged : Yes
-    NoVictimNeeded : Yes
-    BombardType : Yes
-    OverrideVoiceAttackSound : CorsairVoiceAttackFirebomb
-    OverrideVoiceEnterStateAttackSound : ElvenWarriorVoiceEnterStateAttackBow
-    RequireFollowThru : Yes
-    FinishAttackOnceStarted : Yes
-    HoldDuringReload : Yes
-    IsAimingWeapon : Yes
-    HoldAfterFiringDelay : 2000
-    ProjectileFilterInContainer : +GIMLI
-    AntiStructure : Yes
-    AntiGround : Yes
-    ScatterRadiusVsInfantry : 0.08
-    ScatterIndependently : Yes
-    PlayFXWhenStealthed : Yes
-    AimDirection : 270
-    FXTrigger : CATAPULT_ROCK
-    ShareTimers : Yes
-    DisableScatterForTargetsOnWall : Yes
-    DamageType : FLAME
-    CanSwoop : Yes
-    PassengerProportionalAttack : Yes
-    MaxAttackPassengers : 4
-    ChaseWeapon : Yes
-    CanFireWhileCharging : yes
-    IgnoreLinearFirstTarget : Yes
-    LinearTarget : 3.2
-    ForceDisplayPercentReady : Yes
-    AntiAirborneInfantry : Yes
-    LockWhenUsing : Yes
+    LeechRangeWeapon : bool
+    MeleeWeapon : bool
+    DamageDealtAtSelfPosition : bool
+    PreAttackFX : FX
+    ShouldPlayUnderAttackEvaEvent : bool
+    FireFlankFX : FX
+    InstantLoadClipOnActivate : bool
+    IdleAfterFiringDelay : float
+    MinimumAttackRange : float
+    ProjectileSelf : bool
+    PreAttackRandomAmount : float
+    HitPassengerPercentage : float
+    CanBeDodged : bool
+    NoVictimNeeded : bool
+    BombardType : bool
+    OverrideVoiceAttackSound : Sound
+    OverrideVoiceEnterStateAttackSound : Sound
+    RequireFollowThru : bool
+    FinishAttackOnceStarted : bool
+    HoldDuringReload : bool
+    IsAimingWeapon : bool
+    HoldAfterFiringDelay : float
+    ProjectileFilterInContainer : FilterList
+    AntiStructure : bool
+    AntiGround : bool
+    ScatterRadiusVsInfantry : float
+    ScatterIndependently : bool
+    PlayFXWhenStealthed : bool
+    AimDirection : float
+    FXTrigger : FX
+    ShareTimers : bool
+    DisableScatterForTargetsOnWall : bool
+    DamageType : DamageTypes
+    CanSwoop : bool
+    PassengerProportionalAttack : bool
+    MaxAttackPassengers : float
+    ChaseWeapon : bool
+    CanFireWhileCharging : bool
+    IgnoreLinearFirstTarget : bool
+    LinearTarget : float
+    ForceDisplayPercentReady : bool
+    AntiAirborneInfantry : bool
+    LockWhenUsing : bool
     ProjectileStreamName : FlamethrowerProjectileStream
-    UseInnateAttributes : Yes
+    UseInnateAttributes : bool
     """
     
     nested_attributes = {
@@ -580,5 +610,12 @@ class Weapon(IniObject):
         self.parser = parser
         
         self.nuggets = data.pop("Nuggets")
+        self.value("range", data.pop("AttackRange", None), Float)
+        self.value("delay", data.pop("DelayBetweenShots", None), Float)
+        self.value("firing_duration", data.pop("FiringDuration", None), Float)
         
         self.parser.weapons[name] = self
+    
+    @property
+    def attack_speed(self):
+        return self.firing_duration + self.delay

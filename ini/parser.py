@@ -1,7 +1,7 @@
 from .utils import is_comment, remove_comments, clean_raw, is_end, to_float
 from .objects import String, FilterList, Operation
-from .ini_objects import get_obj
 from .enums import KindsOf, Descriptors
+from .ini_objects import get_obj
 
 import re
 import logging
@@ -146,8 +146,8 @@ class GameParser:
         except ValueError:
             pass
             
-        if value in ["Yes", "No"]:
-            self.macros[name] = value == "Yes"
+        if value.lower() in ["yes", "no"]:
+            self.macros[name] = value.lower() == "yes"
             return
         
         if match := re.match(r"#(\w*)\( (\w*) ([a-zA-Z0-9_.]*) \)", value):

@@ -7,10 +7,10 @@ class Bool:
         if isinstance(value, bool):
             return value
         
-        if not value in ["Yes", "No"]:
+        if not value.lower() in ["yes", "no"]:
             raise ValueError(f"Expected a MACRO or a BOOL but found {value}")
             
-        return value == "Yes"
+        return value.lower() == "yes"
 
 class Float:
     @classmethod
