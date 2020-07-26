@@ -1,6 +1,17 @@
 import enum
 
-class DamageTypes(enum.Enum):
+class BFMEEnum(enum.Enum):
+    @classmethod
+    def convert(cls, parser, name):
+        return cls[name]
+    
+    @classmethod
+    def has(cls, key):
+        return key in cls.__members__
+
+class DamageTypes(BFMEEnum):
+    DEFAULT         = -1
+    
     FORCE           = 0
     CRUSH           = 1   
     SLASH           = 2
@@ -32,10 +43,10 @@ class DamageTypes(enum.Enum):
     CAVALRY_RANGED  = 26
     POISON          = 27
     
-class DamageFXTypes(enum.Enum):
+class DamageFXTypes(BFMEEnum):
     pass
 
-class CommandTypes(enum.Enum):
+class CommandTypes(BFMEEnum):
     CANCEL_UNIT_BUILD               = 0
     CANCEL_UPGRADE                  = 1
     HORDE_TOGGLE_FORMATION          = 2
@@ -80,7 +91,7 @@ class CommandTypes(enum.Enum):
     CANCEL_NEIGHBORHOOD             = 42
     SPECIAL_POWER_TOGGLE            = 43
     
-class Options(enum.Enum):
+class Options(BFMEEnum):
     OK_FOR_MULTI_SELECT                             = 0
     OPTION_TWO                                      = 1
     CANCELABLE                                      = 2
@@ -97,23 +108,23 @@ class Options(enum.Enum):
     NEED_UPGRADE                                    = 13
     NO_PLAY_UNIT_SPECIFIC_SOUND_FOR_AUTO_ABILITY    = 14
 
-class UpgradeTypes(enum.Enum):
+class UpgradeTypes(BFMEEnum):
     OBJECT  = 0
     PLAYER  = 1
     
-class ButtonBorderTypes(enum.Enum):
+class ButtonBorderTypes(BFMEEnum):
     pass
     
-class ModelConditions(enum.Enum):
+class ModelConditions(BFMEEnum):
     pass
     
-class Flags(enum.Enum):
+class Flags(BFMEEnum):
     pass
     
-class WeaponSlots(enum.Enum):
+class WeaponSlots(BFMEEnum):
     pass
     
-class KindsOf(enum.Enum):
+class KindsOf(BFMEEnum):
     OBSTACLE                        = 0
     SELECTABLE                      = 1
     IMMOBILE                        = 2
@@ -337,17 +348,17 @@ class KindsOf(enum.Enum):
     SIEGEENGINE                     = 220
     HORDE_MONSTER                   = 221                 
     
-class Descriptors(enum.Enum):
+class Descriptors(BFMEEnum):
     ANY     = 0
     NONE    = 1
     ALL     = 2
     
-class Relations(enum.Enum):
+class Relations(BFMEEnum):
     ENEMIES     = 0
     ALLIES      = 1
     SAME_PLAYER = 2
     
-class ModifierCategories(enum.Enum):
+class ModifierCategories(BFMEEnum):
     LEADERSHIP          = 0
     FORMATION           = 1
     SPELL               = 2
@@ -363,7 +374,7 @@ class ModifierCategories(enum.Enum):
     INNATE_AUTOHEAL     = 12     
     INNATE_HEALTH       = 13
     
-class Modifier(enum.Enum):
+class Modifier(BFMEEnum):
     ARMOR                           = 0
     DAMAGE_ADD                      = 1
     RESIST_FEAR                     = 2
@@ -396,7 +407,7 @@ class Modifier(enum.Enum):
     def is_mult(self):
         return self.value > self.__class__.SEPARATOR.value
 
-class EmotionTypes(enum.Enum):
+class EmotionTypes(BFMEEnum):
     TAUNT                       = 0
     ALERT                       = 1
     CHEER                       = 2
@@ -410,7 +421,7 @@ class EmotionTypes(enum.Enum):
     POINT                       = 10
     QUARRELSOME                 = 11
     
-class SpecialPowerEnums(enum.Enum):
+class SpecialPowerEnums(BFMEEnum):
     SPECIAL_SPELL_BOOK_ELVEN_GIFTS           = 0
     SPECIAL_SPELL_BOOK_DUNEDAIN_ALLIES       = 1
     SPECIAL_WIZARD_BLAST                     = 2
@@ -427,18 +438,18 @@ class SpecialPowerEnums(enum.Enum):
     SPECIAL_GENERAL_TARGETLESS               = 13
     SPECIAL_SHIELD_BUBBLE                    = 14
     
-class Dispositions(enum.Enum):
+class Dispositions(BFMEEnum):
     USE_CLIFF            = 0
     USE_WATER_SURFACE    = 1
     ON_GROUND_ALIGNED    = 2
     LIKE_EXISTING        = 3
     RELATIVE_ANGLE       = 4
 
-class DeathTypes(enum.Enum):
+class DeathTypes(BFMEEnum):
     pass
     
-class LogicTypes(enum.Enum):
+class LogicTypes(BFMEEnum):
     pass
     
-class WeaponBone(enum.Enum):
+class WeaponBone(BFMEEnum):
     pass

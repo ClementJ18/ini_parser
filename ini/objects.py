@@ -2,6 +2,7 @@ from .enums import Descriptors, Relations, KindsOf
 from .utils import is_end
 
 import re
+import sys
 import logging
 
 class String:
@@ -24,6 +25,10 @@ class String:
         
     def __repr__(self):
         return f"<String {self.name}>"
+        
+    @classmethod
+    def convert(cls, parser, value):
+        return parser.strings[value]
         
     @property
     def full_name(self):
@@ -76,6 +81,10 @@ class FilterList:
             return not any(inclusions)
         
         return False
+        
+    @classmethod
+    def convert(cls, parser, value):
+        return value
                     
 class Operation:
     operation_mapping = {
@@ -96,6 +105,10 @@ class Operation:
     def value(self):
         return self.operation(*[self.parser.get_macro(x) for x in self.args])
         
+    @classmethod
+    def convert(cls, parser, value):
+        return value
+        
 class IniObject:
     def recursive(self, func, values):
         values = self.parser.get_macro(values)
@@ -105,45 +118,43 @@ class IniObject:
         if isinstance(values, dict):
             return {x : self.recursive(func, y) for x, y in values.items()}
             
-        return func(self, values)
+        return func(self.parser, values)
         
-    def string(other, name, value):
-        setattr(other, f"_{name}", value)
-        setattr(other.__class__, name, property(lambda self: self.parser.get_string(getattr(self, f"_{name}"))))
-
-    def value(other, name, value, value_type):
-        def func(self, v):
-            return value_type.convert(self.parser, v)
-            
-        setattr(other, f"_{name}", value)
-        setattr(other.__class__, name, property(lambda self: self.recursive(func, getattr(self, f"_{name}"))))
+    def __init__(self, name, data, parser):
+        self.name = name
+        self.parser = parser
+        self.__dict__.update(data)
         
-    def enum(other, name, value, value_enum):
-        def func(self, v):
-            if v is not None:
-                return value_enum[v]
+        getattr(self.parser, self.key)[name] = self
+        
+    @classmethod
+    def convert(cls, parser, value):
+        return getattr(parser, cls.key)[value]
+        
+    def __getattribute__(self, name):
+        annotations = object.__getattribute__(self, "__annotations__")
+        if not name in annotations:
+            return object.__getattribute__(self, name)
             
+        if not name in object.__getattribute__(self, "__dict__"):
             return None
-
-        setattr(other, f"_{name}", value)
-        setattr(other.__class__, name, property(lambda self: self.recursive(func, getattr(self, f"_{name}"))))
-    
-    def reference(other, name, values, dict_name):
-        def func(self, v):
-            return self.parser.get(dict_name, v)
         
-        setattr(other, f"_{name}", values)
-        setattr(other.__class__, name, property(lambda self: self.recursive(func, getattr(self, f"_{name}")) ))
-
+        annotation = annotations[name]
+        if isinstance(annotation, str):
+            annotation = getattr(sys.modules["ini"], annotation)
+            
+        parser = object.__getattribute__(self, "parser")
+        value = parser.get_macro(object.__getattribute__(self, name))
+        
+        recursive = object.__getattribute__(self, "recursive")
+        return recursive(annotation.convert, value)
+    
     def __repr__(self):
         return f"<{self.__class__.__name__} {self.name}>"
-        
-    special_attributes = {}
-    nested_attributes = {}
     
     @staticmethod
-    def default_line_parse(data, value):
-        return value.strip()
+    def default_line_parse(data, key, value):
+        data[key] = value
 
     @classmethod
     def parse(cls, parser, name, lines):
@@ -151,8 +162,8 @@ class IniObject:
         line = next(lines)
         data = {
             "modules": {},
-            **{x : y["default"]() for x, y in cls.special_attributes.items()}, 
-            **{x : list() for x in cls.nested_attributes.keys()}
+            # **{x : y["default"]() for x, y in cls.special_attributes.items()}, 
+            # **{x : list() for x in cls.nested_attributes}
         }
         
         while not is_end(line):
@@ -163,16 +174,7 @@ class IniObject:
                     data["modules"][bh_name] = obj.parse(parser, bh_name, lines)
             elif "=" in line:
                 key, value = line.split("=", maxsplit=1)
-                key = key.strip()
-                
-                for special, func in cls.special_attributes.items():
-                    if key == special:
-                        returned = func["func"](data, value)
-                        if returned is not None:
-                            data[key] = returned
-                        break
-                else:
-                    data[key] = cls.default_line_parse(data, value)
+                cls.default_line_parse(data, key.strip(), value.strip())
             else:
                 possible_name = line.split()
                 if len(possible_name) == 2:
