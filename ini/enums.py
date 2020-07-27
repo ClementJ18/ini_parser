@@ -10,8 +10,6 @@ class BFMEEnum(enum.Enum):
         return key in cls.__members__
 
 class DamageTypes(BFMEEnum):
-    DEFAULT         = -1
-    
     FORCE           = 0
     CRUSH           = 1   
     SLASH           = 2

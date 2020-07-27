@@ -153,7 +153,7 @@ class IniObject:
         return f"<{self.__class__.__name__} {self.name}>"
     
     @staticmethod
-    def default_line_parse(data, key, value):
+    def line_parse(data, key, value):
         data[key] = value
 
     @classmethod
@@ -174,7 +174,7 @@ class IniObject:
                     data["modules"][bh_name] = obj.parse(parser, bh_name, lines)
             elif "=" in line:
                 key, value = line.split("=", maxsplit=1)
-                cls.default_line_parse(data, key.strip(), value.strip())
+                cls.line_parse(data, key.strip(), value.strip())
             else:
                 possible_name = line.split()
                 if len(possible_name) == 2:

@@ -283,44 +283,6 @@ class Science(IniObject):
     def is_unlocked(self, sciences):
         sciences = [y.name for y in sciences]
         return any(all(x in sciences for x in preq) for preq in self._prequisites)
-
-class SpecialPower(IniObject):
-    """
-    Enum : SpecialPowerEnums
-    ReloadTime : float
-    PublicTimer : bool
-    ObjectFilter : FilterList
-    Flags : List[Flags]
-    RequiredSciences : List[Sciences]
-    InitiateAtLocationSound : Sound
-    ViewObjectDuration : float
-    ViewObjectRange : float
-    RadiusCursorRadius : float
-    MaxCastRange : float
-    ForbiddenObjectFilter : FilterList
-    ForbiddenObjectRange : float
-    """
-    def __init__(self, name, data, parser):
-        self.parser = parser
-        self.name = name
-        
-        self.enum("special_enum", data.pop("Enum", None), SpecialPowerEnums)
-        self.value("reload", data.pop("ReloadTime", 0), Float)
-        self.value("public_timer", data.pop("PublicTimer", "No"), Bool)
-        self.filter = FilterList(None, data.pop("ObjectFilter", []))
-        self.enum("flags", data.pop("Flags", []), Flags)
-        self.reference("sciences", data.pop("RequiredSciences", []), "sciences")
-        self.value("cursor_radius", data.pop("RadiusCursorRadius", 0), Float)
-        self.value("max_cast", data.pop("MaxCastRange", 0), Float)
-        self.forbidden = FilterList(None, data.pop("ForbiddenObjectFilter", 0))
-        self.value("forbidden_range", data.pop("ForbiddenObjectRange", 0), Float)
-        
-        self.parser.specialpowers[name] = self
-        
-    special_attributes = {
-        "Flags": {"default": list, "func": lambda data, value: value.split()},
-        "ForbiddenObjectFilter": {"default": list, "func": lambda data, value: value.split()}
-    }    
     
 class CreateObject(IniObject):
     """

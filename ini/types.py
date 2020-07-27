@@ -31,9 +31,29 @@ class Float:
             raise ValueError(f"Expected a MACRO or FLOAT but found {value}")
             
 class Coords:
+    indexes = ["X", "Y", "Z"]
+    
     @classmethod
     def convert(cls, parser, value):
-        return value
+        coords = [0, 0, 0] #x y z 
+        for coord in value.split():
+            ref, value = value.split(":")
+            coords[indexes.index(ref.strip())] = float(value.strip())
+        
+        return coords
+        
+class Int:
+    @classmethod
+    def convert(cls, parser, value):
+        value = parser.get_macro(value)
+        
+        if isinstance(value, int):
+            return value
+            
+        try:
+            return int(value)
+        except ValueError:
+            raise ValueError(f"Expected a MACRO or INT but found {value}")
         
 class List:
     def __init__(self, element_type):

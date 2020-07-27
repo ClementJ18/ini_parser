@@ -1,7 +1,6 @@
 from .enums import *
-from .utils import to_float
 from .objects import FilterList, IniObject, String
-from .types import Float, Bool, Coords, List, Dict
+from .types import *
 from .nuggets import *
 
 import sys
@@ -14,37 +13,37 @@ class Upgrade(IniObject):
     
     Type : UpgradeTypes
     DisplayName : String
-    BuildTime : Float
-    BuildCost : Float
+    BuildTime : Int = 0
+    BuildCost : Int = 0
     # ButtonImage : Image
     Tooltip : String
     # Cursor : Cursor
-    PersistsInCampaign : Bool
+    PersistsInCampaign : Bool = False
     # LocalPlayerGainsUpgradeEvaEvent : EvaEvent
     # AlliedPlayerGainsUpgradeEvaEvent : EvaEvent
     # EnemyPlayerGainsUpgradeEvaEvent : EvaEvent
     # AlliedPlayerLosesUpgradeEvaEvent : EvaEvent
     # EnemyPlayerLosesUpgradeEvaEvent : EvaEvent
-    NoUpgradeDiscount : Bool
+    NoUpgradeDiscount : Bool = False
     UseObjectTemplateForCostDiscount : "Object"
     # SkirmishAIHeuristic : AI
     # ResearchCompleteEvaEvent : EvaEvent
     # ResearchSound : Sound
     RequiredObjectFilter : FilterList
     # StrategicIcon : Image
-    SubUpgradeTemplateNames : List("Upgrade")
+    SubUpgradeTemplateNames : List("Upgrade") = []
 
 class Armor(IniObject):
     key = "armorsets"
     
-    DEFAULT : Float
-    FlankedPenalty : Float
-    DamageScalar : Float
+    DEFAULT : Float = 1
+    FlankedPenalty : Float = 1
+    DamageScalar : Float = 1
     
-    __annotations__.update({x : Float for x in DamageTypes})
+    __annotations__.update({x.name : Float for x in DamageTypes})
         
     @staticmethod
-    def default_line_parse(data, key, value):
+    def line_parse(data, key, value):
         armor = value.split()
         if len(armor) == 2:
             data[armor[0].strip()] = armor[1]
@@ -52,13 +51,47 @@ class Armor(IniObject):
             data[key] = value
         
     def get_damage_scalar(self, damagetype, flanked = False):
-        default = self.default or 1
-        value = getattr(self, damagetype.name, default) * self.scalar
+        value = getattr(self, damagetype.name, self.DEFAULT)
         
         if flanked:
-            return value + (value * flanked)
+            return value + (value * self.FlankedPenalty)
         
-        return value * (self.scalar or 1)
+        return value * self.DamageScalar
+        
+class SpecialPower(IniObject):
+    key = "specialpowers"
+    
+    Enum : SpecialPowerEnums
+    ReloadTime : Int
+    PublicTimer : Bool = False
+    ObjectFilter : FilterList
+    Flags : List(Flags)
+    RequiredSciences : List("Sciences")
+    # InitiateAtLocationSound : Sound
+    ViewObjectDuration : Float
+    ViewObjectRange : Float
+    RadiusCursorRadius : Float
+    MaxCastRange : Float
+    ForbiddenObjectFilter : FilterList
+    ForbiddenObjectRange : Float
+    
+class Science(IniObject):
+    key = "sciences"
+    
+    PrerequisiteSciences : List("Science")
+    SciencePurchasePointCost : Int = 0
+    IsGrantable : Bool = False
+    SciencePurchasePointCostMP : Int = 0
+    
+    @staticmethod
+    def line_parse(data, key, value):
+        if key == "PrerequisiteSciences":
+            data[key] = [] if value.strip().lower() == "none" else value.split(" OR ")
+        else:
+            data[key] = value
+    
+    def is_unlocked(self, *sciences):
+        return any(all(x in sciences for x in preq) for preq in self.PrerequisiteSciences)
 
 class Object(IniObject):
     def __init__(self, name, data, parser):
@@ -87,10 +120,8 @@ class ChildObject(Object):
         
     def __getattribute__(self, name):
         try:
-            item = super().__getattribute__(name)
+            return Object.__getattribute__(self, name)
         except AttributeError:
             pass
-        else:
-            return item
             
-        return object.__getattribute__(self.parent, name)
+        return Object.__getattribute__(self.parent, name)
