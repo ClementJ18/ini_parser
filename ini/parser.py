@@ -1,7 +1,7 @@
 from .utils import is_comment, remove_comments, clean_raw, is_end, to_float
-from .objects import String, FilterList, Operation
+from .types import String, FilterList, Operation
 from .enums import KindsOf, Descriptors
-from .ini_objects import get_obj
+from .objects import get_obj
 
 import re
 import logging
@@ -23,6 +23,7 @@ class GameParser:
         self.objectcreationlists = {}
         self.objects = {}
         self.weapons = {}
+        self.factions = {}
         
         self.cursors = {}
         self.images = {}

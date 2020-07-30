@@ -34,7 +34,10 @@ class IniObject:
         
     @classmethod
     def convert(cls, parser, value):
-        return getattr(parser, cls.key)[value]
+        try:
+            return getattr(parser, cls.key)[value]
+        except KeyError:
+            raise KeyError(f"Expected MACRO or {cls.__name__} but found {value}")
         
     def __getattribute__(self, name):
         annotations = object.__getattribute__(self, "__annotations__")
@@ -81,7 +84,7 @@ class IniObject:
                 if obj := get_obj(behavior):
                     data["modules"][bh_name] = obj.parse(parser, bh_name, lines)
             elif line.startswith("Draw"):
-                _, _, draw, draw_name = line.split():
+                _, _, draw, draw_name = line.split()
                 data["modules"][draw_name] = Draw.parse(parser, draw_name, lines)
             elif "=" in line: # parse as a regular attribute
                 key, value = line.split("=", maxsplit=1)

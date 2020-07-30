@@ -1,5 +1,6 @@
 from .utils import to_float
 
+import re
 import sys
 
 class Bool:

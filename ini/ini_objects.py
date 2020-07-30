@@ -407,3 +407,47 @@ class ChildObject(Object):
         
         parent = Object.__getattribute__(self, "parent")
         return Object.__getattribute__(parent, name)
+        
+class PlayerTemplate(IniObject):
+    key = "factions"
+    
+    Side : Sides
+    PlayableSide : Bool
+    StartMoney : Int
+    PreferredColor : RGB
+    IntrinsicSciences : List(Science)
+    DisplayName : String
+    # ScoreScreenImage : Image
+    # LoadScreenMusic : Music
+    IsObserver : Bool
+    # LoadScreenImage : Image
+    # BeaconName : Object
+    # SideIconImage : Image
+    Evil : Bool
+    MaxLevelMP : Int
+    MaxLevelSP : Int
+    StartingUnit1 : Object
+    StartingUnitOffset1 : Coords
+    StartingUnit0 : Object
+    StartingUnitOffset0 : Coords
+    StartingUnit2 : Object
+    StartingUnitOffset2 : Coords
+    StartingUnitTacticalWOTR : Object
+    IntrinsicSciencesMP : List(Science)
+    SpellBook : Object
+    SpellBookMp : Object
+    PurchaseScienceCommandSet : CommandSet
+    PurchaseScienceCommandSetMP : CommandSet
+    # DefaultPlayerAIType : AI
+    # LightPointsUpSound : Sounds
+    # ObjectiveAddedSound : Sound
+    # ObjectiveCompletedSound : Sound
+    InitialUpgrades : List(Upgrade)
+    BuildableHeroesMP : List(Object)
+    BuildableRingHeroesMP : List(Object)
+    SpellStoreCurrentPowerLabel : String
+    SpellStoreMaximumPowerLabel : String
+    ResourceModifierObjectFilter : FilterList
+    ResourceModifierValues : List(Float)
+    # MultiSelectionPortrait : Image
+    StartingBuilding : Object
