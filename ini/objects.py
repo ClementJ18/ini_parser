@@ -5,109 +5,13 @@ import re
 import sys
 import logging
 
-class String:
-    """
+def get_obj(name):
+    obj = getattr(sys.modules["ini"], name, None)
     
-    type : str
-    name : str
-    value : str
-    shortcut : Optional[str]
-    
-    """
-    def __init__(self, name, value):
-        self.type, self.name = name.rsplit(":", 1)
-        self.value = value
-        match = re.search(r"&([A-Za-z])", value)
-        self.shortcut = match.group(1) if match else None
+    if hasattr(obj, "parse"):
+        return obj
         
-    def __str__(self):
-        return self.value
-        
-    def __repr__(self):
-        return f"<String {self.name}>"
-        
-    @classmethod
-    def convert(cls, parser, value):
-        return parser.strings[value]
-        
-    @property
-    def full_name(self):
-        return f"{self.type}:{self.name}"
-        
-class FilterList:
-    def __init__(self, name, values):
-        self.name = name
-        
-        self.descriptor = None
-        self.relations = []
-        self.inclusion = []
-        self.exclusion = []
-        
-        for value in values:
-            if value in Descriptors.__members__:
-                self.descriptor = Descriptors[value]
-            elif value in Relations.__members__:
-                self.relations.append(Relations[value])
-            elif value.startswith(('-', '+')):
-                if value[1:] in KindsOf.__members__:
-                    member = KindsOf[value[1:]]
-                else:
-                    member = value[1:]
-
-                if value[0] == "-":
-                    self.exclusion.append(member)
-                else:
-                    self.inclusion.append(member)
-                    
-    def __repr__(self):
-        return f"<FilterList {self.name}>"
-        
-    def is_in(self, obj, relation = None):
-        exclusions = (x == obj.name or x in obj.kindof for x in self.exclusion)
-        if any(exclusions):
-            return False
-            
-        if relation not in self.relations and relation is not None:
-            return False
-        
-        inclusions = (x == obj.name or x in obj.kindof for x in self.inclusion)
-        if self.descriptor == Descriptors.ALL:
-            return all(inclusions)
-        
-        if self.descriptor == Descriptors.ANY:
-            return any(inclusions)
-        
-        if self.descriptor == Descriptors.NONE:
-            return not any(inclusions)
-        
-        return False
-        
-    @classmethod
-    def convert(cls, parser, value):
-        return value
-                    
-class Operation:
-    operation_mapping = {
-        "MULTIPLY": lambda x, y: x*y,
-    }
-    
-    def __init__(self, operation, args, parser):
-        self.parser = parser
-        
-        self.key = operation
-        self.operation = self.operation_mapping[operation]
-        self.args = args
-        
-    def __repr__(self):
-        return f"<Operation {self.key}>"
-    
-    @property
-    def value(self):
-        return self.operation(*[self.parser.get_macro(x) for x in self.args])
-        
-    @classmethod
-    def convert(cls, parser, value):
-        return value
+    return None
         
 class IniObject:
     def recursive(self, func, values):
@@ -125,7 +29,8 @@ class IniObject:
         self.parser = parser
         self.__dict__.update(data)
         
-        getattr(self.parser, self.key)[name] = self
+        if self.key is not None:
+            getattr(self.parser, self.key)[name] = self
         
     @classmethod
     def convert(cls, parser, value):
@@ -155,27 +60,35 @@ class IniObject:
     @staticmethod
     def line_parse(data, key, value):
         data[key] = value
+        
+    nested_attributes = {}
+    default_attributes = {}
+    __annotations__ = {}
 
     @classmethod
-    def parse(cls, parser, name, lines):
-        from .behaviors import get_behavior
-        line = next(lines)
+    def parse(cls, parser, name, lines):        
         data = {
-            "modules": {},
             # **{x : y["default"]() for x, y in cls.special_attributes.items()}, 
-            # **{x : list() for x in cls.nested_attributes}
+            **{x : list() for x in cls.nested_attributes},
+            **cls.default_attributes
         }
         
+        line = next(lines)
         while not is_end(line):
             logging.debug(line)
-            if line.startswith("Behavior"):
+            if line.startswith("Behavior"): #parse as a behavior
                 _, _, behavior, bh_name = line.split()
-                if obj := get_behavior(behavior):
+                if obj := get_obj(behavior):
                     data["modules"][bh_name] = obj.parse(parser, bh_name, lines)
-            elif "=" in line:
+            elif line.startswith("Draw"):
+                _, _, draw, draw_name = line.split():
+                data["modules"][draw_name] = Draw.parse(parser, draw_name, lines)
+            elif "=" in line: # parse as a regular attribute
                 key, value = line.split("=", maxsplit=1)
                 cls.line_parse(data, key.strip(), value.strip())
-            else:
+            elif False: #parse as a multiline attribute
+                pass
+            else: #parse as a NestedAttribute
                 possible_name = line.split()
                 if len(possible_name) == 2:
                     obj_name = possible_name[0]
@@ -184,14 +97,34 @@ class IniObject:
                     obj_name = line.strip()
                     new_name = name
                         
+                obj = get_obj(obj_name)
                 for key, values in cls.nested_attributes.items():
-                    try:
-                        index = [x.__name__ for x in values].index(obj_name)
-                        data[key].append(values[index].parse(parser, new_name, lines)) 
-                    except ValueError:
-                        pass
+                    if obj in values:
+                        data[key].append(obj.parse(parser, new_name, lines)) 
             
             line = next(lines) 
             
         return cls(name, data, parser)
+        
+class Module(IniObject):
+    pass
+    
+class NestedAttribute(IniObject):
+    pass
+    
+class MultilineAttribute(IniObject):
+    pass
+    
+class Nugget(NestedAttribute):
+    key = None
+    
+class Behavior(Module):
+    key = None
+    
+    @property
+    def trigger(self):
+        raise NotImplementedError
+        
+class Draw(Module):
+    key = None   
         

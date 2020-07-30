@@ -40,6 +40,7 @@ class DamageTypes(BFMEEnum):
     CAVALRY         = 25
     CAVALRY_RANGED  = 26
     POISON          = 27
+    FIRE            = (FLAME, LOGICAL_FIRE)
     
 class DamageFXTypes(BFMEEnum):
     pass
@@ -109,18 +110,6 @@ class Options(BFMEEnum):
 class UpgradeTypes(BFMEEnum):
     OBJECT  = 0
     PLAYER  = 1
-    
-class ButtonBorderTypes(BFMEEnum):
-    pass
-    
-class ModelConditions(BFMEEnum):
-    pass
-    
-class Flags(BFMEEnum):
-    pass
-    
-class WeaponSlots(BFMEEnum):
-    pass
     
 class KindsOf(BFMEEnum):
     OBSTACLE                        = 0
@@ -355,6 +344,9 @@ class Relations(BFMEEnum):
     ENEMIES     = 0
     ALLIES      = 1
     SAME_PLAYER = 2
+    NEUTRAL     = 3
+    SELF        = 4
+    SUICIDE     = 5
     
 class ModifierCategories(BFMEEnum):
     LEADERSHIP          = 0
@@ -444,10 +436,77 @@ class Dispositions(BFMEEnum):
     RELATIVE_ANGLE       = 4
 
 class DeathTypes(BFMEEnum):
-    pass
+    NORMAL           = 0
+    NONE             = 1
+    CRUSHED          = 2
+    BURNED           = 3
+    EXPLODED         = 4
+    POISONED         = 5
+    TOPPLED          = 6
+    FLOODED          = 7
+    SUICIDED         = 8
+    LASERED          = 9
+    DETONATED        = 10
+    SPLATTED         = 11
+    POISONED_BETA    = 12
+    EXTRA_2          = 13
+    EXTRA_3          = 14
+    EXTRA_4          = 15
+    EXTRA_5          = 16
+    EXTRA_6          = 17
+    EXTRA_7          = 18
+    EXTRA_8          = 19
+    KNOCKBACK        = 20
+    SUPERNATURAL     = 21
+    FADED            = 22
+    SLAUGHTERED      = 23
     
 class LogicTypes(BFMEEnum):
     pass
     
 class WeaponBone(BFMEEnum):
     pass
+    
+class ButtonBorderTypes(BFMEEnum):
+    pass
+    
+class ModelConditions(BFMEEnum):
+    pass
+    
+class Flags(BFMEEnum):
+    pass
+    
+class WeaponSlots(BFMEEnum):
+    pass
+    
+class SpecialPowerUnpackConditions(BFMEEnum):
+    MOUNTED         = 0
+    WEAPON_TOGGLE   = 1
+    MOVING          = 2
+    
+class AModAuraConditions(BFMEEnum):
+    MOUNTED     = 0
+    TAINT       = 1
+    ELVEN_WOOD  = 2
+    
+class CreateAtLocations(BFMEEnum):
+    CREATE_AT_EDGE_NEAR_SOURCE                         = 0
+    CREATE_AT_EDGE_NEAR_TARGET                         = 1
+    CREATE_AT_EDGE_NEAR_TARGET_AND_MOVE_TO_LOCATION    = 2
+    CREATE_AT_LOCATION                                 = 3
+    USE_OWNER_OBJECT                                   = 4
+    CREATE_ABOVE_LOCATION                              = 5
+    CREATE_AT_EDGE_FARTHEST_FROM_TARGET                = 6
+    CREATE_CLOSEST_TO_SPAWN_POINT                      = 7
+    USE_SECONDARY_OBJECT_LOCATION                      = 8
+    
+class Sides(BFMEEnum):
+    Men         = 0
+    Elves       = 1
+    Dwarves     = 2
+    Isengard    = 3
+    Mordor      = 4
+    Wild        = 5
+    Angmar      = 6
+    Arnor       = 7
+    Neutral     = 8
