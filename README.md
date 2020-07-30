@@ -19,6 +19,6 @@ This library parses objects using python's type hint system. A subclass of IniOb
    - [x] Nuggets
 - [x] PlayerTemplates
 
-- [] Object
-- [] ChildObject
-- [] Behaviors 
+- [ ] Object
+- [ ] ChildObject
+- [ ] Behaviors 
