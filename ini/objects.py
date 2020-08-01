@@ -14,16 +14,6 @@ def get_obj(name):
     return None
         
 class IniObject:
-    def recursive(self, func, values):
-        values = self.parser.get_macro(values)
-        if isinstance(values, list):
-            return [self.recursive(func, value) for value in values]
-        
-        if isinstance(values, dict):
-            return {x : self.recursive(func, y) for x, y in values.items()}
-            
-        return func(self.parser, values)
-        
     def __init__(self, name, data, parser):
         self.name = name
         self.parser = parser
@@ -54,8 +44,7 @@ class IniObject:
         parser = object.__getattribute__(self, "parser")
         value = parser.get_macro(object.__getattribute__(self, name))
         
-        recursive = object.__getattribute__(self, "recursive")
-        return recursive(annotation.convert, value)
+        return annotation.convert(parser, value)
     
     def __repr__(self):
         return f"<{self.__class__.__name__} {self.name}>"

@@ -254,15 +254,15 @@ class ModifierList(IniObject):
     
     __annotations__.update({x.name : Float for x in Modifier})
     INVULNERABLE : List(DamageTypes, index=1) = []
-    ARMOR :  Tuple(Float, List(DamageTypes))
-    
+    ARMOR :  List(Tuple(Float, List(DamageTypes)))
+        
     @staticmethod
     def line_parse(data, key, value):
         if key == "Modifier":
             key, value = value.split(maxsplit=1)
         
         if key == "ARMOR":
-            if key not in data:
+            if not key in data:
                 data[key] = []
                 
             data[key].append(value)

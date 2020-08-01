@@ -93,8 +93,11 @@ class List(Sequence):
         self.index = index
         
     def convert(self, parser, value):
+        if isinstance(value, str):
+            value = value.split()
+        
         annotation = self.get_annotation(self.element_type)
-        return [annotation.convert(parser, x) for x in value.split()[self.index:]]
+        return [annotation.convert(parser, x) for x in value[self.index:]]
         
 class Dict(Sequence):
     def __init__(self, key_type, value_type):
@@ -102,10 +105,13 @@ class Dict(Sequence):
         self.value_type = value_type
         
     def convert(self, parser, value):
+        if isinstance(value, str):
+            value = value.split()
+        
         key = self.get_annotation(self.key_type)
         value = self.get_annotation(self.value_type)
         
-        return {key.convert(parser, x) : value.convert(parser, x) for x in value.split()}
+        return {key.convert(parser, x) : value.convert(parser, x) for x in value}
         
 class Tuple(Sequence):
     def __init__(self, *element_types):
@@ -113,8 +119,11 @@ class Tuple(Sequence):
         
     def convert(self, parser, value):
         annotations = [self.get_annotation(e_type) for e_type in self.element_types]
+        if isinstance(value, str):
+            value = value.split(maxsplit=len(self.element_types) - 1)
+        
         em = []
-        for t, e in zip(annotations, value.split(maxsplit=len(self.element_types) - 1)):
+        for t, e in zip(annotations, value):
             em.append(t.convert(parser, e))
             
         return tuple(em)    
