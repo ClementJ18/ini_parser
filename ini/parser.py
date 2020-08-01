@@ -1,6 +1,5 @@
-from .utils import is_comment, remove_comments, clean_raw, is_end, to_float
-from .types import String, FilterList, Operation
-from .enums import KindsOf, Descriptors
+from .utils import is_comment, remove_comments, clean_raw, is_end
+from .types import String
 from .objects import get_obj
 
 import re
@@ -83,8 +82,8 @@ class GameParser:
                 obj.parse(self, obj_name[1], lines)
             elif line.startswith("#define"):
                 self.parse_macro(line)
-                
-    def compile(self, raw, obj_names):
+    @staticmethod
+    def compile(raw, obj_names):
         lines = clean_raw(raw)
         obj = []        
         objs = {x : defaultdict(set) for x in obj_names}
@@ -94,7 +93,6 @@ class GameParser:
             if is_comment(line):
                 continue
 
-            
             line = remove_comments(line.strip())
             if re.match(fr"^({obj_names})\s*\w*$", line):
                 logging.info(f"NEW OBJECT {line}")    
@@ -139,38 +137,6 @@ class GameParser:
         name = name.strip()
         
         self.macros[name] = value
-        return 
-        
-        try:
-            self.macros[name] = to_float(value)
-            return
-        except ValueError:
-            pass
-            
-        if value.lower() in ["yes", "no"]:
-            self.macros[name] = value.lower() == "yes"
-            return
-        
-        if match := re.match(r"#(\w*)\( (\w*) ([a-zA-Z0-9_.]*) \)", value):
-            operation = match.group(1)
-            args = match.group(2, 3)
-            self.macros[name] = Operation(operation, args, self)
-            return
-            
-        if value[0].isdigit():
-            self.macros[name] = value
-            return
-        
-        try:
-            if value.split()[0] in Descriptors.__members__ or value.split()[0].startswith('-'):
-                self.macros[name] = FilterList(name, value.split())
-            elif value.split()[0] in KindsOf.__members__:
-                self.macros[name] = [KindsOf[x] for x in value.split()]
-            else:
-                self.macros[name] = value.split()
-            return
-        except IndexError:
-            self.macros[name] = value
         
     def parse_macros(self, raw):
         lines = clean_raw(raw)
@@ -179,5 +145,4 @@ class GameParser:
             logging.debug(line)
             
             if line.startswith("#define"):
-               self.parse_macro(line)
-        
+                self.parse_macro(line)

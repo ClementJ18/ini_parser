@@ -31,6 +31,9 @@ def read_file(path):
     raise UnicodeDecodeError
     
 def to_float(value):
+    if not isinstance(value, str):
+        return value
+    
     number = float(value.replace("%", "").strip())
     return number if not "%" in value else number / 100
     

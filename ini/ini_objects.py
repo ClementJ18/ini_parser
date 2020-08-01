@@ -451,3 +451,6 @@ class PlayerTemplate(IniObject):
     ResourceModifierValues : List(Float)
     # MultiSelectionPortrait : Image
     StartingBuilding : Object
+
+class CrateData(IniObject):
+    pass

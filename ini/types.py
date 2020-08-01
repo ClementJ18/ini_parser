@@ -1,6 +1,7 @@
 from .utils import to_float
+from .enums import *
 
-import re
+import regex
 import sys
 
 class Bool:
@@ -14,91 +15,104 @@ class Bool:
             raise ValueError(f"Expected a MACRO or a BOOL but found {value}")
             
         return value.lower() == "yes"
-
-class Float:
+        
+class Number:
+    operation_mapping = {
+        "MULTIPLY": lambda x, y: x*y,
+        "DIVIDE": lambda x, y: x/y
+    }
+    
+    pattern = regex.compile(r"#(MULTIPLY|DIVIDE)\(\s*((?R)|[0-9]*)\s*((?R)|[0-9]*)\s*\)", regex.VERSION1)
+    
+    @classmethod
+    def do_operation(cls, parser, value):
+        match = cls.pattern.match(value)
+        if match is None:
+            return cls.get_value(parser, value)
+        
+        return cls.operation_mapping[match.group(1)](
+            cls.do_operation(parser, match.group(2)),
+            cls.do_operation(parser, match.group(3))
+        )
+        
     @classmethod
     def convert(cls, parser, value):
+        return cls.get_value(parser, cls.do_operation(parser, value))
+        
+    @classmethod
+    def get_value(cls, parser, values):
+        raise NotImplementedError       
+
+class Float(Number):
+    @classmethod
+    def get_value(cls, parser, value):
         value = parser.get_macro(value)
-        
-        if isinstance(value, float):
-            return value
-        
-        if isinstance(value, int):
-            return float(value)
         
         try:
             return to_float(value)
         except ValueError:
             raise ValueError(f"Expected a MACRO or FLOAT but found {value}")
             
-class Coords:
-    indexes = ["X", "Y", "Z"]
-    
+class Int(Number):
     @classmethod
-    def convert(cls, parser, value):
-        coords = [0, 0, 0] #x y z 
-        for coord in value.split():
-            ref, value = value.split(":")
-            coords[indexes.index(ref.strip())] = float(value.strip())
-        
-        return coords
-        
-class RGB:
-    indexes = ["R", "G", "B"]
-    
-    @classmethod
-    def convert(cls, parser, value):
-        rgb = [0, 0, 0] #x y z 
-        for coord in value.split():
-            ref, value = value.split(":")
-            rgb[indexes.index(ref.strip())] = float(value.strip())
-        
-        return rgb
-        
-class Int:
-    @classmethod
-    def convert(cls, parser, value):
+    def get_value(cls, parser, value):
         value = parser.get_macro(value)
-        
-        if isinstance(value, int):
-            return value
             
         try:
             return int(value)
         except ValueError:
             raise ValueError(f"Expected a MACRO or INT but found {value}")
+                  
+class Complex:
+    @classmethod
+    def convert(cls, parser, value):
+        values = [0, 0, 0] #x y z 
+        for em in value.split():
+            ref, code = em.split(":")
+            values[cls.indexes.index(ref.strip())] = float(code.strip())
         
-class List:
+        return values
+
+class Coords(Complex):
+    indexes = ["X", "Y", "Z"]
+        
+class RGB(Complex):
+    indexes = ["R", "G", "B"]
+
+class Sequence:
+    @staticmethod
+    def get_annotation(annotation):
+        if isinstance(annotation, str):
+            return getattr(sys.modules["ini"], annotation)
+                
+        return annotation
+    
+class List(Sequence):
     def __init__(self, element_type, index=0):
         self.element_type = element_type
         self.index = index
         
     def convert(self, parser, value):
-        if isinstance(self.element_type, str):
-            annotation = getattr(sys.modules["ini"], self.element_type)
-        else:
-            annotation = self.element_type
-            
+        annotation = self.get_annotation(self.element_type)
         return [annotation.convert(parser, x) for x in value.split()[self.index:]]
         
-class Dict:
+class Dict(Sequence):
     def __init__(self, key_type, value_type):
-        self.element_type = element_type
+        self.key_type = key_type
+        self.value_type = value_type
         
     def convert(self, parser, value):
-        if isinstance(self.element_type, str):
-            annotation = getattr(sys.modules["ini"], self.element_type)
-        else:
-            annotation = self.element_type
-
-        return {x : annotation.convert(parser, x) for x in value.split()}
+        key = self.get_annotation(self.key_type)
+        value = self.get_annotation(self.value_type)
         
-class Tuple:
+        return {key.convert(parser, x) : value.convert(parser, x) for x in value.split()}
+        
+class Tuple(Sequence):
     def __init__(self, *element_types):
         self.element_types = element_types
         
     def convert(self, parser, value):
-        annotations = [getattr(sys.modules["ini"], e_type) if isinstance(e_type, str) else e_type for e_type in self.element_types]
+        annotations = [self.get_annotation(e_type) for e_type in self.element_types]
         em = []
         for t, e in zip(annotations, value.split(maxsplit=len(self.element_types) - 1)):
             em.append(t.convert(parser, e))
@@ -130,7 +144,7 @@ class String:
     def __init__(self, name, value):
         self.type, self.name = name.rsplit(":", 1)
         self.value = value
-        match = re.search(r"&([A-Za-z])", value)
+        match = regex.search(r"&([A-Za-z])", value)
         self.shortcut = match.group(1) if match else None
         
     def __str__(self):
@@ -194,29 +208,6 @@ class FilterList:
             return not any(inclusions)
         
         return False
-        
-    @classmethod
-    def convert(cls, parser, value):
-        return value
-                    
-class Operation:
-    operation_mapping = {
-        "MULTIPLY": lambda x, y: x*y,
-    }
-    
-    def __init__(self, operation, args, parser):
-        self.parser = parser
-        
-        self.key = operation
-        self.operation = self.operation_mapping[operation]
-        self.args = args
-        
-    def __repr__(self):
-        return f"<Operation {self.key}>"
-    
-    @property
-    def value(self):
-        return self.operation(*[self.parser.get_macro(x) for x in self.args])
         
     @classmethod
     def convert(cls, parser, value):
