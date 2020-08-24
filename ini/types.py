@@ -62,6 +62,17 @@ class Int(Number):
             return int(value)
         except ValueError:
             raise ValueError(f"Expected a MACRO or INT but found {value}")
+            
+class Degrees(Number):
+    @classmethod
+    def get_value(cls, parser, value):
+        num = Int.get_value(parser, value)
+        
+        if 180 >= num >= -180:
+            return num
+            
+        raise ValueError(f"Expected a MACRO or DEGREES but found {num}")
+            
                   
 class Complex:
     @classmethod
@@ -87,8 +98,8 @@ class Sequence:
                 
         return annotation
     
-class List(Sequence):
-    def __init__(self, element_type, index=0):
+class _List(Sequence):
+    def __init__(self, element_type=None, index=None):
         self.element_type = element_type
         self.index = index
         
@@ -99,8 +110,16 @@ class List(Sequence):
         annotation = self.get_annotation(self.element_type)
         return [annotation.convert(parser, x) for x in value[self.index:]]
         
-class Dict(Sequence):
-    def __init__(self, key_type, value_type):
+    def __getitem__(self, params):
+        if not isinstance(params, tuple):
+            params = (params, 0)
+            
+        return self.__class__(params[0], params[1])
+        
+List = _List()
+        
+class _Dict(Sequence):
+    def __init__(self, key_type=None, value_type=None):
         self.key_type = key_type
         self.value_type = value_type
         
@@ -113,7 +132,12 @@ class Dict(Sequence):
         
         return {key.convert(parser, x) : value.convert(parser, x) for x in value}
         
-class Tuple(Sequence):
+    def __getitem__(self, params):
+        return self.__class__(params[0], params[1])
+        
+Dict = _Dict()
+        
+class _Tuple(Sequence):
     def __init__(self, *element_types):
         self.element_types = element_types
         
@@ -126,9 +150,14 @@ class Tuple(Sequence):
         for t, e in zip(annotations, value):
             em.append(t.convert(parser, e))
             
-        return tuple(em)    
+        return tuple(em) 
+        
+    def __getitem__(self, params):
+        return self.__class__(*params)
+        
+Tuple = _Tuple()   
          
-class Union:
+class _Union:
     def __init__(self, *types):
         self.types = types
         
@@ -140,6 +169,11 @@ class Union:
                 pass
                 
         raise ValueError(f"Failed to convert to any of {self.types}")
+        
+    def __getitem__(self, params):
+        return self.__class__(*params)
+        
+Union = _Union()
         
 class String:
     """
@@ -169,8 +203,13 @@ class String:
     @property
     def full_name(self):
         return f"{self.type}:{self.name}"
-        
+
+Moment = Tuple[MomentEnum, Union["Weapon", "OCL"]]
+
 class FilterList:
+    pass        
+
+class ObjectFilter(FilterList):
     def __init__(self, name, values):
         self.name = name
         
@@ -185,8 +224,8 @@ class FilterList:
             elif value in Relations.__members__:
                 self.relations.append(Relations[value])
             elif value.startswith(('-', '+')):
-                if value[1:] in KindsOf.__members__:
-                    member = KindsOf[value[1:]]
+                if value[1:] in KindOf.__members__:
+                    member = KindOf[value[1:]]
                 else:
                     member = value[1:]
 
@@ -196,7 +235,7 @@ class FilterList:
                     self.inclusion.append(member)
                     
     def __repr__(self):
-        return f"<FilterList {self.name}>"
+        return f"<ObjectFilter {self.name}>"
         
     def is_in(self, obj, relation = None):
         exclusions = (x == obj.name or x in obj.kindof for x in self.exclusion)
@@ -221,3 +260,15 @@ class FilterList:
     @classmethod
     def convert(cls, parser, value):
         return value
+        
+class DeathTypeFilter(FilterList):
+    pass
+    
+class DamageTypeFilter(FilterList):
+    pass
+    
+class AmountAndObjectFilter(FilterList):
+    pass
+    
+class KeyValuePair:
+    pass

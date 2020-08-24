@@ -129,3 +129,7 @@ parser.sublime-project
 parser.sublime-workspace
 test.py
 thoughts.txt
+*.txt
+parse_enumerators.py
+parse_behaviors.py
+current_issues.txt

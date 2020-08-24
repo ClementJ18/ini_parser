@@ -1,7 +1,7 @@
 from .enums import *
 from .objects import IniObject
 from .types import *
-from .nuggets import *
+from .nuggets import WEAPON_NUGGETS
 
 import sys
     
@@ -26,9 +26,24 @@ class Upgrade(IniObject):
     # SkirmishAIHeuristic : AI
     # ResearchCompleteEvaEvent : EvaEvent
     # ResearchSound : Sound
-    RequiredObjectFilter : FilterList
+    RequiredObjectFilter : ObjectFilter
     # StrategicIcon : Image
-    SubUpgradeTemplateNames : List("Upgrade") = []
+    SubUpgradeTemplateNames : List["Upgrade"] = []
+    
+class FloodMember(IniObject):
+    MemberTemplateName : "Object"
+    ControlPointOffsetOne : Coords
+    ControlPointOffsetTwo : Coords
+    ControlPointOffsetThree : Coords
+    ControlPointOffsetFour : Coords
+    MemberSpeed : Float
+    
+class ReplaceObject(IniObject):
+    TargetObjectFilter : ObjectFilter
+    ReplacementObjectName : "Object"
+    
+class TurretModule(IniObject):
+    pass
 
 class Armor(IniObject):
     key = "armorsets"
@@ -37,7 +52,7 @@ class Armor(IniObject):
     FlankedPenalty : Float = 1
     DamageScalar : Float = 1
     
-    __annotations__.update({x.name : Float for x in DamageTypes})
+    __annotations__.update({x.name : Float for x in DamageType})
         
     @staticmethod
     def line_parse(data, key, value):
@@ -47,8 +62,8 @@ class Armor(IniObject):
         else:
             data[key] = value
         
-    def get_damage_scalar(self, damagetype, flanked = False):
-        value = getattr(self, damagetype.name, self.DEFAULT)
+    def get_damage_scalar(self, d_type, flanked = False):
+        value = getattr(self, d_type.name, self.DEFAULT)
         
         if flanked:
             return value + (value * self.FlankedPenalty)
@@ -58,24 +73,24 @@ class Armor(IniObject):
 class SpecialPower(IniObject):
     key = "specialpowers"
     
-    Enum : SpecialPowerEnums
+    Enum : SpecialPowerType
     ReloadTime : Int
     PublicTimer : Bool = False
-    ObjectFilter : FilterList
-    Flags : List(Flags)
-    RequiredSciences : List("Sciences")
+    ObjectFilter : ObjectFilter
+    # Flags : List[Flags]
+    RequiredSciences : List["Sciences"]
     # InitiateAtLocationSound : Sound
     ViewObjectDuration : Float
     ViewObjectRange : Float
     RadiusCursorRadius : Float
     MaxCastRange : Float
-    ForbiddenObjectFilter : FilterList
+    ForbiddenObjectFilter : ObjectFilter
     ForbiddenObjectRange : Float
     
 class Science(IniObject):
     key = "sciences"
     
-    PrerequisiteSciences : List("Science")
+    PrerequisiteSciences : List["Science"]
     SciencePurchasePoIntCost : Int = 0
     IsGrantable : Bool = False
     SciencePurchasePoIntCostMP : Int = 0
@@ -93,7 +108,7 @@ class Science(IniObject):
 class CreateObject(IniObject):
     key = None
     
-    ObjectNames : List("Object")
+    ObjectNames : List["Object"]
     IgnoreCommandPoIntLimit : Bool
     Disposition : Dispositions
     Count : Int
@@ -103,7 +118,7 @@ class CreateObject(IniObject):
     ClearRemovables : Bool
     FadeIn : Bool
     FadeTime : Int
-    RequiredUpgrades : List(Upgrade)
+    RequiredUpgrades : List[Upgrade]
     Offset : Coords
     DispositionAngle : Float
     SpreadFormation : Bool
@@ -135,16 +150,16 @@ class CommandButton(IniObject):
     # InvalidCursorName : Cursor
     # RadiusCursorType : Cursor
     
-    FlagsUsedForToggle : Flags
+    # FlagsUsedForToggle : Flags
     # ButtonImage : Image
-    AffectsKindOf : KindsOf
-    Options : List(Options)
-    # Stances : List(Stances)
-    CreateAHeroUIAllowableUpgrades : List(Upgrade)
+    AffectsKindOf : KindOf
+    Options : List[Options]
+    # Stances : List[Stances]
+    CreateAHeroUIAllowableUpgrades : List[Upgrade]
     
-    AutoAbilityDisallowedOnModelCondition : ModelConditions
-    DisableOnModelCondition : ModelConditions
-    EnableOnModelCondition : ModelConditions
+    AutoAbilityDisallowedOnModelCondition : ModelCondition
+    DisableOnModelCondition : ModelCondition
+    EnableOnModelCondition : ModelCondition
     
     Object : "Object"
     Science : Science
@@ -164,9 +179,9 @@ class CommandButton(IniObject):
     Upgrade : Upgrade
     NeededUpgrade : Upgrade
     
-    WeaponSlot : WeaponSlots
-    WeaponSlotToggle1 : WeaponSlots
-    WeaponSlotToggle2 : WeaponSlots
+    # WeaponSlot : WeaponSlots
+    # WeaponSlotToggle1 : WeaponSlots
+    # WeaponSlotToggle2 : WeaponSlots
     
     DoubleClick : Bool
     Radial : Bool
@@ -191,12 +206,12 @@ class CommandButton(IniObject):
 class ExperienceLevel(IniObject):
     key = "levels"
 
-    TargetNames : List("Object")
+    TargetNames : List["Object"]
     RequiredExperience : Float
     ExperienceAward : Float
     Rank : Float
     ExperienceAwardOwnGuysDie : Float
-    Upgrades : List(Upgrade)
+    Upgrades : List[Upgrade]
     InformUpdateModule : Bool
     LevelUpTintColor : RGB
     LevelUpTintPreColorTime : Float
@@ -247,14 +262,14 @@ class ModifierList(IniObject):
     # FX2 : FX
     # FX3 : FX
     MultiLevelFX : Bool
-    ModelCondition : ModelConditions
-    ClearModelCondition : ModelConditions
+    ModelCondition : ModelCondition
+    ClearModelCondition : ModelCondition
     Upgrade : Upgrade
     # EndFX : FX
     
     __annotations__.update({x.name : Float for x in Modifier})
-    INVULNERABLE : List(DamageTypes, index=1) = []
-    ARMOR :  List(Tuple(Float, List(DamageTypes)))
+    INVULNERABLE : List[DamageType, 0] = []
+    ARMOR :  List[Tuple[Float, List[DamageType]]]
         
     @staticmethod
     def line_parse(data, key, value):
@@ -268,6 +283,37 @@ class ModifierList(IniObject):
             data[key].append(value)
         else:       
             data[key] = value
+            
+    def get_string(self):
+        if self.Duration > 3000:
+            duration = f"For {self.Duration//1000} seconds"
+        else:
+            duration = f"While in range"
+        
+        string = []
+        for modifier in Modifier:
+            if modifier.name in ["ARMOR", "INVULNERABLE"]:
+                continue
+            
+            if mod := getattr(self, modifier.name, None):
+                if mod > 0:
+                    string.append(f"- Increases {modifier.name.title()} by +{mod*100}")
+                else:
+                    string.append(f"- Decreases {modifier.name.title()} by -{mod*100}")
+        
+        modifs = '\n'.join(string)
+        final = f"{duration} nearby Objects gain the following bonuses:\n{modifs}{self.get_string_inunerable()}"
+        
+        return final
+        
+    def get_string_armor(self):
+        pass
+        
+    def get_string_inunerable(self):
+        if not self.INVULNERABLE:
+            return ""
+        
+        return f"- Become invunerable against {', '.join([x.name for x in self.INVULNERABLE])}"
         
     
 class Weapon(IniObject):
@@ -298,8 +344,8 @@ class Weapon(IniObject):
     AntiAirborneVehicle : Bool
     AntiAirborneMonster : Bool
     CanFireWhileMoving : Bool
-    ProjectileCollidesWith : Union(KindsOf, Relations)
-    RadiusDamageAffects : List(Relations)
+    ProjectileCollidesWith : Union[KindOf, Relations]
+    RadiusDamageAffects : List[Relations]
     HitStoredTarget : Bool
     # PreferredTargetBone : B_LLLID
     LeechRangeWeapon : Bool
@@ -324,7 +370,7 @@ class Weapon(IniObject):
     HoldDuringReload : Bool
     IsAimingWeapon : Bool
     HoldAfterFiringDelay : Float
-    ProjectileFilterInContainer : FilterList
+    ProjectileFilterInContainer : ObjectFilter
     AntiStructure : Bool
     AntiGround : Bool
     ScatterRadiusVsInfantry : Float
@@ -334,7 +380,7 @@ class Weapon(IniObject):
     # FXTrigger : FX
     ShareTimers : Bool
     DisableScatterForTargetsOnWall : Bool
-    DamageType : DamageTypes
+    DamageType : DamageType
     CanSwoop : Bool
     PassengerProportionalAttack : Bool
     MaxAttackPassengers : Float
@@ -348,25 +394,19 @@ class Weapon(IniObject):
     # ProjectileStreamName : ProjectileStream
     UseInnateAttributes : Bool
     
-    nested_attributes = {
-        "Nuggets": [
-            AttributeModifierNugget, ClearNuggets, DOTNugget, DamageContainedNugget, DamageFieldNugget, 
-            DamageNugget, EmotionWeaponNugget, FireLogicNugget, GrabNugget, HordeAttackNugget, LuaEventNugget, 
-            MetaImpactNugget, OpenGateNugget, ParalyzeNugget, ProjectileNugget, SlaveAttackNugget, SpawnAndFadeNugget, 
-            SpecialModelConditionNugget, StealMoneyNugget, WeaponOCLNugget
-        ]
-    }
+    # Nuggets : List[Union(*NUGGETS)]
+    nested_attributes = {"Nuggets" : WEAPON_NUGGETS}
     
     @property
-    def attack_speed(self):
-        return self.firing_duration + self.delay
+    def AttackSpeed(self):
+        return self.FiringDuration + self.DelayBetweenShots
 
 
 class Object(IniObject):
     key = "objects"
     
-    Side : Sides
-    EditorSorting : KindsOf
+    FactionSide : FactionSide
+    EditorSorting : KindOf
     # ThingClass : CHARACTER_UNIT
     BuildCost : Int                
     BuildTime  : Int
@@ -393,6 +433,7 @@ class Object(IniObject):
 
 class ChildObject(Object):
     Parent : Object
+    
     def __init__(self, name, data, parser):
         true_name, parent = name.split()
         
@@ -408,21 +449,24 @@ class ChildObject(Object):
         parent = Object.__getattribute__(self, "parent")
         return Object.__getattribute__(parent, name)
         
+class SubObject(IniObject):
+    pass
+        
 class PlayerTemplate(IniObject):
     key = "factions"
     
-    Side : Sides
-    PlayableSide : Bool
+    FactionSide : FactionSide
+    PlayableFactionSide : Bool
     StartMoney : Int
     PreferredColor : RGB
-    IntrinsicSciences : List(Science)
+    IntrinsicSciences : List[Science]
     DisplayName : String
     # ScoreScreenImage : Image
     # LoadScreenMusic : Music
     IsObserver : Bool
     # LoadScreenImage : Image
     # BeaconName : Object
-    # SideIconImage : Image
+    # FactionSideIconImage : Image
     Evil : Bool
     MaxLevelMP : Int
     MaxLevelSP : Int
@@ -433,7 +477,7 @@ class PlayerTemplate(IniObject):
     StartingUnit2 : Object
     StartingUnitOffset2 : Coords
     StartingUnitTacticalWOTR : Object
-    IntrinsicSciencesMP : List(Science)
+    IntrinsicSciencesMP : List[Science]
     SpellBook : Object
     SpellBookMp : Object
     PurchaseScienceCommandSet : CommandSet
@@ -442,15 +486,18 @@ class PlayerTemplate(IniObject):
     # LightPointsUpSound : Sounds
     # ObjectiveAddedSound : Sound
     # ObjectiveCompletedSound : Sound
-    InitialUpgrades : List(Upgrade)
-    BuildableHeroesMP : List(Object)
-    BuildableRingHeroesMP : List(Object)
+    InitialUpgrades : List[Upgrade]
+    BuildableHeroesMP : List[Object]
+    BuildableRingHeroesMP : List[Object]
     SpellStoreCurrentPowerLabel : String
     SpellStoreMaximumPowerLabel : String
-    ResourceModifierObjectFilter : FilterList
-    ResourceModifierValues : List(Float)
+    ResourceModifierObjectFilter : ObjectFilter
+    ResourceModifierValues : List[Float]
     # MultiSelectionPortrait : Image
     StartingBuilding : Object
 
 class CrateData(IniObject):
+    pass
+    
+class StanceTemplate(IniObject):
     pass

@@ -1,6 +1,6 @@
 from .utils import is_comment, remove_comments, clean_raw, is_end
 from .types import String
-from .objects import get_obj
+from .objects import get_obj, IniObject
 
 import re
 import logging
@@ -31,6 +31,18 @@ class GameParser:
             
     def __repr__(self):
         return f"<Parser>"
+    
+    @staticmethod
+    def check_strings(attr):
+        missing = []
+        for obj in attr:
+            if not isinstance(obj, IniObject):
+                raise TypeError(f"Must be an IniObject not {obj.__class__.__name__}")
+                
+            missing.extend(obj.check_strings())
+            
+        return missing
+                
             
     def get_string(self, string):
         if string is None:

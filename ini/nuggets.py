@@ -6,25 +6,25 @@ class DamageNugget(Nugget):
     Damage : Float
     Radius : Float
     DelayTime : Float
-    DamageType : DamageTypes
+    DamageType : DamageType
     # DamageFXType : DamageFXTypes
-    DeathType : DeathTypes
+    DeathType : DeathType
     DamageScalar : Float
     DamageArc : Float
     FlankingBonus : Float
-    ForbiddenUpgradeNames : List("Upgrade") = []
-    RequiredUpgradeNames : List("Upgrade") = []
+    ForbiddenUpgradeNames : List["Upgrade"] = []
+    RequiredUpgradeNames : List["Upgrade"] = []
     AcceptDamageAdd : Bool
-    SpecialObjectFilter : FilterList
+    SpecialObjectFilter : ObjectFilter
     DamageTaperOff : Float
     DamageSpeed : Float
-    DamageSubType : DamageTypes
+    DamageSubType : DamageType
     DrainLife : Bool
     DrainLifeMultiplier : Float
     CylinderAOE : Bool
     DamageMaxHeight : Float
     DamageArcInverted : Bool
-    ForceKillObjectFilter : FilterList
+    ForceKillObjectFilter : ObjectFilter
     DamageMaxHeightAboveTerrain : Float
 
 class MetaImpactNugget(Nugget):
@@ -33,76 +33,76 @@ class MetaImpactNugget(Nugget):
     ShockWaveRadius : Float
     ShockWaveArc : Float
     ShockWaveTaperOff : Float
-    SpecialObjectFilter : FilterList
+    SpecialObjectFilter : ObjectFilter
     ShockWaveSpeed : Float
     ShockWaveZMult : Float
-    RequiredUpgradeNames : List("Upgrade") = []
-    ForbiddenUpgradeNames : List("Upgrade") = []
-    KillObjectFilter : FilterList
+    RequiredUpgradeNames : List["Upgrade"] = []
+    ForbiddenUpgradeNames : List["Upgrade"] = []
+    KillObjectFilter : ObjectFilter
     OnlyWhenJustDied : Bool
     DelayTime : Float
 
 class ProjectileNugget(Nugget):
     WarheadTemplateName : "Weapon"
     ProjectileTemplateName : "Object"
-    ForbiddenUpgradeNames : List("Upgrade") = []
-    SpecialObjectFilter : FilterList
-    RequiredUpgradeNames : List("Upgrade") = []
+    ForbiddenUpgradeNames : List["Upgrade"] = []
+    SpecialObjectFilter : ObjectFilter
+    RequiredUpgradeNames : List["Upgrade"] = []
     # WeaponLaunchBoneSlotOverride : SECONDARY
     AlwaysAttackHereOffset : Coords
     UseAlwaysAttackOffset : Bool
         
 
 class WeaponOCLNugget(Nugget):
-    WeaponOCLName : List("ObjectCreate") = []
-    RequiredUpgradeNames : List("Upgrade") = []
+    WeaponOCLName : List["ObjectCreate"] = []
+    RequiredUpgradeNames : List["Upgrade"] = []
 
 class AttributeModifierNugget(Nugget):
     AttributeModifier : "ModifierList"
     Radius : Float
-    SpecialObjectFilter : FilterList
+    SpecialObjectFilter : ObjectFilter
     DamageFXType : DamageFXTypes
-    ForbiddenUpgradeNames : List("Upgrade") = []
-    RequiredUpgradeNames : List("Upgrade") = []
+    ForbiddenUpgradeNames : List["Upgrade"] = []
+    RequiredUpgradeNames : List["Upgrade"] = []
     AffectHordeMembers : Bool
 
 class StealMoneyNugget(Nugget):
     AmountStolenPerAttack : Float
-    SpecialObjectFilter : FilterList
-    RequiredUpgradeNames : List("Upgrade") = []
+    SpecialObjectFilter : ObjectFilter
+    RequiredUpgradeNames : List["Upgrade"] = []
         
 
 class DOTNugget(Nugget):        
     Damage : Float
     Radius : Float
     DelayTime : Float
-    DamageType : DamageTypes
+    DamageType : DamageType
     DamageFXType : DamageFXTypes
-    DeathType : DeathTypes
+    DeathType : DeathType
     DamageInterval : Float
     DamageDuration : Float
-    RequiredUpgradeNames : List("Upgrade") = []
+    RequiredUpgradeNames : List["Upgrade"] = []
     DamageScalar : Float
     AcceptDamageAdd : Bool
-    SpecialObjectFilter : FilterList
-    DamageSubType : DamageTypes
-    ForbiddenUpgradeNames : List("Upgrade") = []
+    SpecialObjectFilter : ObjectFilter
+    DamageSubType : DamageType
+    ForbiddenUpgradeNames : List["Upgrade"] = []
 
 class ParalyzeNugget(Nugget):        
     Radius : Float
     Duration : Float
-    SpecialObjectFilter : FilterList
+    SpecialObjectFilter : ObjectFilter
     FreezeAnimation : Bool
     AffectHordeMembers : Bool
     # ParalyzeFX : FX
-    RequiredUpgradeNames : List("Upgrade") = []
-    ForbiddenUpgradeNames : List("Upgrade") = []
+    RequiredUpgradeNames : List["Upgrade"] = []
+    ForbiddenUpgradeNames : List["Upgrade"] = []
 
 class EmotionWeaponNugget(Nugget):        
     EmotionType : EmotionTypes
     Radius : Float
     Duration : Float
-    SpecialObjectFilter : FilterList
+    SpecialObjectFilter : ObjectFilter
 
 class FireLogicNugget(Nugget):        
     LogicType : LogicTypes
@@ -113,9 +113,9 @@ class FireLogicNugget(Nugget):
     MaxResistance : Float
 
 class SpecialModelConditionNugget(Nugget):        
-    ModelConditionNames : List(ModelConditions) = []
+    ModelConditionNames : List[ModelCondition] = []
     ModelConditionDuration : Float
-    SpecialObjectFilter : FilterList
+    SpecialObjectFilter : ObjectFilter
 
 class ClearNuggets(Nugget):
     pass    
@@ -128,12 +128,12 @@ class HordeAttackNugget(Nugget):
     pass
     
 class SpawnAndFadeNugget(Nugget):        
-    ObjectTargetFilter : FilterList
+    ObjectTargetFilter : ObjectFilter
     SpawnedObjectName : "Object"
     SpawnOffset : Coords
 
 class GrabNugget(Nugget):        
-    SpecialObjectFilter : FilterList
+    SpecialObjectFilter : ObjectFilter
     ContainTargetOnEffect : Bool
     ImpactTargetOnEffect : Bool
     ShockWaveAmount : Float
@@ -153,9 +153,29 @@ class SlaveAttackNugget(Nugget):
 
 class DamageContainedNugget(Nugget):        
     KillCount : Float
-    KillKindof : List(KindsOf) = []
-    KillKindofNot : List(KindsOf) = []
-    DeathType : DeathTypes
+    KillKindof : List[KindOf] = []
+    KillKindofNot : List[KindOf] = []
+    DeathType : DeathType
 
 class OpenGateNugget(Nugget):            
     Radius : Float
+
+WEAPON_NUGGETS = [
+    AttributeModifierNugget, ClearNuggets, DOTNugget, DamageContainedNugget, DamageFieldNugget, 
+    DamageNugget, EmotionWeaponNugget, FireLogicNugget, GrabNugget, HordeAttackNugget, LuaEventNugget, 
+    MetaImpactNugget, OpenGateNugget, ParalyzeNugget, ProjectileNugget, SlaveAttackNugget, SpawnAndFadeNugget, 
+    SpecialModelConditionNugget, StealMoneyNugget, WeaponOCLNugget
+]
+
+class InvisibilityNugget(Nugget):
+    ForbiddenWeaponConditions : WeaponsetFlags
+    DetectionRange : Float
+    IgnoreTreeCheckUpgrades : List["Upgrade"]
+    # BecomeStealthedFX : FXList
+    # ExitStealthFX : FXList
+    HintDetectableConditions : ObjectStatus
+    
+class FireWeaponNugget(Nugget):
+    WeaponName : "Weapon"
+    FireDelay : Int
+    OneShot : Bool

@@ -1,7 +1,6 @@
-from .enums import Descriptors, Relations, KindsOf
 from .utils import is_end
+from .types import String
 
-import re
 import sys
 import logging
 
@@ -12,8 +11,26 @@ def get_obj(name):
         return obj
         
     return None
+    
+class UpdateClassDictMeta(type):
+    def __new__(cls, name, bases, attrs):
+        new_class = super(UpdateClassDictMeta, cls).__new__(cls, name, bases, attrs)
         
-class IniObject:
+        print(attrs)
+        
+        nested = [bc.nested_attributes for bc in bases if hasattr(bc, 'nested_attributes')]
+        if hasattr(new_class, 'nested_attributes'):
+            nested.append(new_class.nested_attributes)
+            
+        print(nested)
+        new_class.nested_attributes = {}
+        for d in nested:
+            new_class.nested_attributes.update(d)
+            
+        print(new_class.nested_attributes)
+        return new_class
+        
+class IniObject(metaclass=UpdateClassDictMeta):
     def __init__(self, name, data, parser):
         self.name = name
         self.parser = parser
@@ -21,6 +38,17 @@ class IniObject:
         
         if self.key is not None:
             getattr(self.parser, self.key)[name] = self
+            
+    def check_strings(self):
+        missing = []
+        strings = [x for x, y in self.__annotations__.items() if y is String]
+        for string in strings:
+            try:
+                getattr(self, string)
+            except AttributeError:
+                missing.append(string)
+                
+        return missing
         
     @classmethod
     def convert(cls, parser, value):
@@ -51,16 +79,21 @@ class IniObject:
     
     @staticmethod
     def line_parse(data, key, value):
-        data[key] = value
-        
-    nested_attributes = {}
+        if key in data:
+            if not isinstance(data[key], list):
+                data[key] = [data[key]]
+            
+            data[key].append(value)
+        else:
+            data[key] = value
+    
+    nested_attributes = {} 
     default_attributes = {}
     __annotations__ = {}
 
     @classmethod
     def parse(cls, parser, name, lines):        
         data = {
-            # **{x : y["default"]() for x, y in cls.special_attributes.items()}, 
             **{x : list() for x in cls.nested_attributes},
             **cls.default_attributes
         }
@@ -73,13 +106,11 @@ class IniObject:
                 if obj := get_obj(behavior):
                     data["modules"][bh_name] = obj.parse(parser, bh_name, lines)
             elif line.startswith("Draw"):
-                _, _, draw, draw_name = line.split()
+                _, _, _, draw_name = line.split()
                 data["modules"][draw_name] = Draw.parse(parser, draw_name, lines)
             elif "=" in line: # parse as a regular attribute
                 key, value = line.split("=", maxsplit=1)
                 cls.line_parse(data, key.strip(), value.strip())
-            elif False: #parse as a multiline attribute
-                pass
             else: #parse as a NestedAttribute
                 possible_name = line.split()
                 if len(possible_name) == 2:
@@ -91,12 +122,16 @@ class IniObject:
                         
                 obj = get_obj(obj_name)
                 for key, values in cls.nested_attributes.items():
-                    if obj in values:
+                    if obj in values or obj_name in values:
                         data[key].append(obj.parse(parser, new_name, lines)) 
             
             line = next(lines) 
             
         return cls(name, data, parser)
+        
+    def copy(self):
+        #copy dict or something
+        return self
         
 class Module(IniObject):
     pass
@@ -115,7 +150,13 @@ class Behavior(Module):
     
     @property
     def trigger(self):
-        raise NotImplementedError
+        if hasattr(self, "SpecialPowerTemplate"):
+            return self.SpecialPowerTemplate
+        
+        if hasattr(self, "TriggeredBy"):
+            return self.TriggeredBy
+        
+        raise AttributeError(f"Trigger for {self.__class__.__name__} is not implemented")
         
 class Draw(Module):
     key = None   
