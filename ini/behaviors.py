@@ -296,7 +296,7 @@ class AutoAbilityBehavior(Behavior):
     StartsActive : Bool
     BaseMaxRangeFromStartPos : Bool
     AdjustAttackMeleePosition : Bool
-    Query : AmountAndObjectFilter
+    Query : Tuple[Int, ObjectFilter]
     AllowSelf : Bool
     IdleTimeSeconds : Float
     ForbiddenStatus : ObjectStatus
@@ -603,7 +603,7 @@ class AbstractHordeContainBehavior(ContainBehavior):
     
 class HordeContainBehavior(AbstractHordeContainBehavior):
     ThisFormationIsTheMainFormation : Bool
-    # RankInfo : List[KeyValuePair]
+    RankInfo : KeyValuePair[Int, Object, Coords]
     RanksThatStopAdvance : Int
     RanksToReleaseWhenAttacking : List[Int]
     RanksToJustFreeWhenAttacking : List[Int]

@@ -3,6 +3,8 @@ from .enums import *
 
 import regex
 import sys
+from itertools import zip_longest
+from collections import defaultdict
 
 class Bool:
     @classmethod
@@ -90,7 +92,7 @@ class Coords(Complex):
 class RGB(Complex):
     indexes = ["R", "G", "B"]
 
-class Sequence:
+class ContainerConverter:
     @staticmethod
     def get_annotation(annotation):
         if isinstance(annotation, str):
@@ -98,7 +100,7 @@ class Sequence:
                 
         return annotation
     
-class _List(Sequence):
+class _List(ContainerConverter):
     def __init__(self, element_type=None, index=None):
         self.element_type = element_type
         self.index = index
@@ -118,26 +120,7 @@ class _List(Sequence):
         
 List = _List()
         
-class _Dict(Sequence):
-    def __init__(self, key_type=None, value_type=None):
-        self.key_type = key_type
-        self.value_type = value_type
-        
-    def convert(self, parser, value):
-        if isinstance(value, str):
-            value = value.split()
-        
-        key = self.get_annotation(self.key_type)
-        value = self.get_annotation(self.value_type)
-        
-        return {key.convert(parser, x) : value.convert(parser, x) for x in value}
-        
-    def __getitem__(self, params):
-        return self.__class__(params[0], params[1])
-        
-Dict = _Dict()
-        
-class _Tuple(Sequence):
+class _Tuple(ContainerConverter):
     def __init__(self, *element_types):
         self.element_types = element_types
         
@@ -147,7 +130,7 @@ class _Tuple(Sequence):
             value = value.split(maxsplit=len(self.element_types) - 1)
         
         em = []
-        for t, e in zip(annotations, value):
+        for t, e in zip_longest(annotations, value, fillvalue=annotations[-1]):
             em.append(t.convert(parser, e))
             
         return tuple(em) 
@@ -157,12 +140,14 @@ class _Tuple(Sequence):
         
 Tuple = _Tuple()   
          
-class _Union:
+class _Union(ContainerConverter):
     def __init__(self, *types):
         self.types = types
         
     def convert(self, parser, value):
-        for t in self.types:
+        for t_type in self.types:
+            t = self.get_annotation(t_type)
+            
             try:
                 return t.convert(parser, value)
             except:
@@ -174,6 +159,30 @@ class _Union:
         return self.__class__(*params)
         
 Union = _Union()
+
+class _KeyValuePair(ContainerConverter):
+    def __init__(self, *values):
+        self.values = values
+        
+    def convert(self, parser, value):
+        pairs = defaultdict(list)
+        for value_type, pair in zip_longest(self.values, value.split(), fillvalue=self.values[-1]):
+            key, raw_v = pair.split(":")
+            annotation = self.get_annotation(value_type)
+            
+            if isinstance(annotation, List):
+                value = self.get_annotation(annotation.element_type).convert(parser, raw_v)
+                paris[key].append(value)
+            else:
+                value = annotation.convert(parser, raw_v)
+                pairs[key] = value
+        
+        return pairs
+    
+    def __getitem__(self, key, value):
+        return self.__class__(key, value)
+        
+KeyValuePair = _KeyValuePair()
         
 class String:
     """
@@ -207,35 +216,40 @@ class String:
 Moment = Tuple[MomentEnum, Union["Weapon", "OCL"]]
 
 class FilterList:
-    pass        
-
-class ObjectFilter(FilterList):
-    def __init__(self, name, values):
-        self.name = name
-        
+    members = []
+    
+    def __init__(self, values, parser):        
         self.descriptor = None
         self.relations = []
         self.inclusion = []
         self.exclusion = []
         
-        for value in values:
+        for value in values.split():
             if value in Descriptors.__members__:
                 self.descriptor = Descriptors[value]
             elif value in Relations.__members__:
                 self.relations.append(Relations[value])
             elif value.startswith(('-', '+')):
-                if value[1:] in KindOf.__members__:
-                    member = KindOf[value[1:]]
+                for member in self.members:
+                    if isinstance(member, str):
+                        member = getattr(sys.modules["ini"], member)
+                        
+                    try:
+                        converted = member.convert(parser, value[1:])
+                        break
+                    except KeyError:
+                        pass
                 else:
-                    member = value[1:]
+                    # converted = value[1:]
+                    raise ValueError(f"Excepted any of {self.members} but got {value[1:]}")
 
                 if value[0] == "-":
-                    self.exclusion.append(member)
+                    self.exclusion.append(converted)
                 else:
-                    self.inclusion.append(member)
+                    self.inclusion.append(converted)
                     
     def __repr__(self):
-        return f"<ObjectFilter {self.name}>"
+        return f"<{self.__class__.__name__}>"
         
     def is_in(self, obj, relation = None):
         exclusions = (x == obj.name or x in obj.kindof for x in self.exclusion)
@@ -259,16 +273,13 @@ class ObjectFilter(FilterList):
         
     @classmethod
     def convert(cls, parser, value):
-        return value
+        return cls(value, parser)        
+
+class ObjectFilter(FilterList):
+    members = [KindOf, "Object"]
         
 class DeathTypeFilter(FilterList):
-    pass
+    members = [DeathType]
     
 class DamageTypeFilter(FilterList):
-    pass
-    
-class AmountAndObjectFilter(FilterList):
-    pass
-    
-class KeyValuePair:
-    pass
+    members = [DamageType]

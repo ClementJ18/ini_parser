@@ -15,19 +15,15 @@ def get_obj(name):
 class UpdateClassDictMeta(type):
     def __new__(cls, name, bases, attrs):
         new_class = super(UpdateClassDictMeta, cls).__new__(cls, name, bases, attrs)
-        
-        print(attrs)
-        
+                
         nested = [bc.nested_attributes for bc in bases if hasattr(bc, 'nested_attributes')]
         if hasattr(new_class, 'nested_attributes'):
             nested.append(new_class.nested_attributes)
             
-        print(nested)
         new_class.nested_attributes = {}
         for d in nested:
             new_class.nested_attributes.update(d)
             
-        print(new_class.nested_attributes)
         return new_class
         
 class IniObject(metaclass=UpdateClassDictMeta):
@@ -52,6 +48,9 @@ class IniObject(metaclass=UpdateClassDictMeta):
         
     @classmethod
     def convert(cls, parser, value):
+        if isinstance(value, cls):
+            return value
+
         try:
             return getattr(parser, cls.key)[value]
         except KeyError:
@@ -130,8 +129,7 @@ class IniObject(metaclass=UpdateClassDictMeta):
         return cls(name, data, parser)
         
     def copy(self):
-        #copy dict or something
-        return self
+        return self.__class__(self.name, self.__dict__, self.parser)
         
 class Module(IniObject):
     pass
@@ -156,7 +154,7 @@ class Behavior(Module):
         if hasattr(self, "TriggeredBy"):
             return self.TriggeredBy
         
-        raise AttributeError(f"Trigger for {self.__class__.__name__} is not implemented")
+        return None
         
 class Draw(Module):
     key = None   
