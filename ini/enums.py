@@ -1,6 +1,13 @@
 import enum
 
-class BFMEEnum(enum.Enum):
+class BFMEEnumMeta(enum.EnumMeta):
+    def __getitem__(self, key):
+        if key.lower() == "none":
+            return None
+
+        return super().__getitem__(key)
+
+class BFMEEnum(enum.Enum, metaclass=BFMEEnumMeta):
     @classmethod
     def convert(cls, parser, name):
         return cls[name]
@@ -8,8 +15,7 @@ class BFMEEnum(enum.Enum):
     @classmethod
     def has(cls, key):
         return key in cls.__members__
-        
-        
+
 class FakeEnum(BFMEEnum):
     @classmethod
     def convert(cls, parser, name):

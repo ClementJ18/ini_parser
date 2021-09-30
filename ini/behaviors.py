@@ -40,6 +40,9 @@ class SpecialPowerModuleBehavior(Behavior):
     BurnDecayModifier : Int
     UseDistanceFromCommandCenter : Bool
     DistanceFromCommandCenter : Float
+
+class SpecialPowerModule(SpecialPowerModuleBehavior):
+    pass
     
 class UpgradeBehavior(Behavior):
     TriggeredBy : List["Upgrade"]
@@ -603,7 +606,7 @@ class AbstractHordeContainBehavior(ContainBehavior):
     
 class HordeContainBehavior(AbstractHordeContainBehavior):
     ThisFormationIsTheMainFormation : Bool
-    RankInfo : KeyValuePair[Int, Object, Coords]
+    RankInfo : KeyValuePair[Int, "Object", Coords]
     RanksThatStopAdvance : Int
     RanksToReleaseWhenAttacking : List[Int]
     RanksToJustFreeWhenAttacking : List[Int]
@@ -1100,7 +1103,7 @@ class ModelConditionSoundSelectorClientBehavior(Behavior):
     pass
 
 class AnimationSoundClientBehavior(Behavior):
-    pass
+    MaxUpdateRangeCap : Int
 
 class RadarMarkerClientUpdate(Behavior):
     MarkerType : MarkerType
@@ -1613,14 +1616,14 @@ class TransitionDamageFX(Behavior):
     # RubbleParticleSystem11 : ParticleSystem
     # RubbleParticleSystem12 : ParticleSystem
     # RubbleNeighbor : ???
-    PristineShowSubObject : List["Object"]
-    PristineHideSubObject : List["Object"]
-    DamagedShowSubObject : List["Object"]
-    DamagedHideSubObject : List["Object"]
-    ReallyDamagedShowSubObject : List["Object"]
-    ReallyDamagedHideSubObject : List["Object"]
-    RubbleShowSubObject : List["Object"]
-    RubbleHideSubObject : List["Object"]
+    PristineShowSubObject : List["SubObject"]
+    PristineHideSubObject : List["SubObject"]
+    DamagedShowSubObject : List["SubObject"]
+    DamagedHideSubObject : List["SubObject"]
+    ReallyDamagedShowSubObject : List["SubObject"]
+    ReallyDamagedHideSubObject : List["SubObject"]
+    RubbleShowSubObject : List["SubObject"]
+    RubbleHideSubObject : List["SubObject"]
 
 class BoneFXDamage(Behavior):
     pass
@@ -1824,6 +1827,9 @@ class SubObjectsUpgrade(UpgradeBehavior):
     SkipFadeOnCreate : Bool
     HideSubObjectsOnRemove : Bool
     UnHideSubObjectsOnRemove : Bool
+
+class ArmorUpgrade(UpgradeBehavior):
+    ArmorSetFlag : ArmorSetFlags
 
 class DoCommandUpgrade(UpgradeBehavior):
     GetUpgradeCommandButtonName : String

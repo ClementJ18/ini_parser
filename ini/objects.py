@@ -94,23 +94,33 @@ class IniObject(metaclass=UpdateClassDictMeta):
     def parse(cls, parser, name, lines):        
         data = {
             **{x : list() for x in cls.nested_attributes},
-            **cls.default_attributes
+            **cls.default_attributes,
+            "modules": {},
         }
         
         line = next(lines)
         while not is_end(line):
-            logging.debug(line)
-            if line.startswith("Behavior"): #parse as a behavior
+            if line.startswith(("Behavior", "ClientBehavior")): #parse as a behavior
+                logging.debug(f"Behavior: {line}")
                 _, _, behavior, bh_name = line.split()
                 if obj := get_obj(behavior):
                     data["modules"][bh_name] = obj.parse(parser, bh_name, lines)
+            elif line.startswith(("Body",)): #parse as a Body
+                logging.debug(f"Body: {line}")
+                _, _, behavior, bh_name = line.split()
+                if obj := get_obj(behavior):
+                    data["Body"] = obj.parse(parser, bh_name, lines)
             elif line.startswith("Draw"):
+                logging.debug(f"Draw: {line}")
                 _, _, _, draw_name = line.split()
-                data["modules"][draw_name] = Draw.parse(parser, draw_name, lines)
+                # data["modules"][draw_name] = Draw.parse(parser, draw_name, lines)
+                Draw.parse(parser, draw_name, lines)
             elif "=" in line: # parse as a regular attribute
+                logging.debug(f"Attribute: {line}")
                 key, value = line.split("=", maxsplit=1)
                 cls.line_parse(data, key.strip(), value.strip())
             else: #parse as a NestedAttribute
+                logging.debug(f"Nested Attribute: {line}")
                 possible_name = line.split()
                 if len(possible_name) == 2:
                     obj_name = possible_name[0]
@@ -157,5 +167,23 @@ class Behavior(Module):
         return None
         
 class Draw(Module):
-    key = None   
+    key = None 
+    module_names = [
+        "DefaultModelConditionState", "ModelConditionState", "AnimationState", "Animation", 
+        "IdleAnimationState", "TransitionState", 
+    ]
+
+    @classmethod
+    def parse(cls, parser, name, lines):
+        counter = 0
+        while True:
+            line = next(lines)
+            if is_end(line):
+                counter -= 1
+
+            if counter < 0:
+                return
+
+            if any(x for x in line.strip().split() if x in cls.module_names):
+                counter += 1
         

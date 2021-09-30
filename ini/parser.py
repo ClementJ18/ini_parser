@@ -23,11 +23,10 @@ class GameParser:
         self.objects = {}
         self.weapons = {}
         self.factions = {}
+        self.locomotors = {}
         
         self.cursors = {}
         self.images = {}
-        
-        self.test = []
             
     def __repr__(self):
         return f"<Parser>"
@@ -94,6 +93,7 @@ class GameParser:
                 obj.parse(self, obj_name[1], lines)
             elif line.startswith("#define"):
                 self.parse_macro(line)
+
     @staticmethod
     def compile(raw, obj_names):
         lines = clean_raw(raw)

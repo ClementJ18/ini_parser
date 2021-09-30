@@ -170,17 +170,17 @@ class _KeyValuePair(ContainerConverter):
             key, raw_v = pair.split(":")
             annotation = self.get_annotation(value_type)
             
-            if isinstance(annotation, List):
+            if isinstance(annotation, _List):
                 value = self.get_annotation(annotation.element_type).convert(parser, raw_v)
-                paris[key].append(value)
+                pairs[key].append(value)
             else:
                 value = annotation.convert(parser, raw_v)
                 pairs[key] = value
         
         return pairs
     
-    def __getitem__(self, key, value):
-        return self.__class__(key, value)
+    def __getitem__(self, *params):
+        return self.__class__(*params)
         
 KeyValuePair = _KeyValuePair()
         
@@ -212,6 +212,13 @@ class String:
     @property
     def full_name(self):
         return f"{self.type}:{self.name}"
+
+def string_comparator(self, original, changed):
+    deleted = [x for x in original if x not in changed]
+    new = [x for x in changed if x not in original]
+    changed = [x for x in original if original.get(x).value != changed.get(x, String("NULL:NULL", "NULL")).value and changed.get(x) is not None]
+    
+    return changed, deleted, new
 
 Moment = Tuple[MomentEnum, Union["Weapon", "OCL"]]
 

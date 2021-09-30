@@ -68,7 +68,7 @@ class Armor(IniObject):
         if flanked:
             return value + (value * self.FlankedPenalty)
         
-        return value * self.DamageScalar
+        return value
         
 class SpecialPower(IniObject):
     key = "specialpowers"
@@ -401,6 +401,36 @@ class Weapon(IniObject):
     def AttackSpeed(self):
         return self.FiringDuration + self.DelayBetweenShots
 
+class Locomotor(IniObject):
+    key = "locomotors"
+
+class WeaponSet(IniObject):
+    key = None
+
+    Conditions : ModelCondition
+    Weapon : List[Tuple[SlotTypes, Weapon]]
+
+class ArmorSet(IniObject):
+    key = None
+
+    Conditions : ArmorSetFlags
+    Armor : Armor
+
+class AutoResolveArmor(IniObject):
+    key = None
+
+class AutoResolveWeapon(IniObject):
+    key = None
+
+class UnitSpecificSounds(IniObject):
+    key = None
+
+class LocomotorSet(IniObject):
+    key = None
+
+    Locomotor : Locomotor
+    Condition : ModelCondition
+    Speed : Int
 
 class Object(IniObject):
     key = "objects"
@@ -419,8 +449,22 @@ class Object(IniObject):
     RecruitText : String
     ReviveText : String
     Hotkey : String
+
+    VisionRange : Float
+    RefundValue : Int
+    IsForbidden : Bool
+    IsBridge : Bool
+    IsPrerequisite : Bool
+    KindOf : List[KindOf]
     
     default_attributes = {"Modules" : {}, "Upgrades": {}}
+    nested_attributes = {
+        "WeaponSet": [WeaponSet], 
+        "ArmorSet": [ArmorSet], 
+        "AutoResolve": [AutoResolveArmor, AutoResolveWeapon],
+        "UnitSpecificSounds": [UnitSpecificSounds],
+        "LocomotorSet": [LocomotorSet]
+    }
         
     def call_special_power(self, power):
         return [x for x in self.Modules if x.trigger.name == power.name]
@@ -497,7 +541,11 @@ class PlayerTemplate(IniObject):
     StartingBuilding : Object
 
 class CrateData(IniObject):
+    key = None
+
     pass
     
 class StanceTemplate(IniObject):
+    key = None
+
     pass

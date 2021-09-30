@@ -133,3 +133,6 @@ thoughts.txt
 parse_enumerators.py
 parse_behaviors.py
 current_issues.txt
+*.ini
+ini-parser.sublime-project
+ini-parser.sublime-workspace
